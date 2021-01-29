@@ -33,6 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/yaml"
@@ -155,38 +156,38 @@ func New(spec *api.ProviderConfig, clusterSpec *api.ClusterConfig) *ClusterProvi
 
 	// override sessions if any custom endpoints specified
 	if endpoint, ok := os.LookupEnv("AWS_CLOUDFORMATION_ENDPOINT"); ok {
-		logger.Debug("Setting CloudFormation endpoint to %s", endpoint)
+		logrus.Debugf("Setting CloudFormation endpoint to %s", endpoint)
 		provider.cfn = cloudformation.New(s, s.Config.Copy().WithEndpoint(endpoint))
 	}
 	if endpoint, ok := os.LookupEnv("AWS_EKS_ENDPOINT"); ok {
-		logger.Debug("Setting EKS endpoint to %s", endpoint)
+		logrus.Debugf("Setting EKS endpoint to %s", endpoint)
 		provider.eks = awseks.New(s, s.Config.Copy().WithEndpoint(endpoint))
 	}
 	if endpoint, ok := os.LookupEnv("AWS_EC2_ENDPOINT"); ok {
-		logger.Debug("Setting EC2 endpoint to %s", endpoint)
+		logrus.Debugf("Setting EC2 endpoint to %s", endpoint)
 		provider.ec2 = ec2.New(s, s.Config.Copy().WithEndpoint(endpoint))
 
 	}
 	if endpoint, ok := os.LookupEnv("AWS_ELB_ENDPOINT"); ok {
-		logger.Debug("Setting ELB endpoint to %s", endpoint)
+		logrus.Debugf("Setting ELB endpoint to %s", endpoint)
 		provider.elb = elb.New(s, s.Config.Copy().WithEndpoint(endpoint))
 
 	}
 	if endpoint, ok := os.LookupEnv("AWS_ELBV2_ENDPOINT"); ok {
-		logger.Debug("Setting ELBV2 endpoint to %s", endpoint)
+		logrus.Debugf("Setting ELBV2 endpoint to %s", endpoint)
 		provider.elbv2 = elbv2.New(s, s.Config.Copy().WithEndpoint(endpoint))
 
 	}
 	if endpoint, ok := os.LookupEnv("AWS_STS_ENDPOINT"); ok {
-		logger.Debug("Setting STS endpoint to %s", endpoint)
+		logrus.Debugf("Setting STS endpoint to %s", endpoint)
 		provider.sts = sts.New(s, s.Config.Copy().WithEndpoint(endpoint))
 	}
 	if endpoint, ok := os.LookupEnv("AWS_IAM_ENDPOINT"); ok {
-		logger.Debug("Setting IAM endpoint to %s", endpoint)
+		logrus.Debugf("Setting IAM endpoint to %s", endpoint)
 		provider.iam = iam.New(s, s.Config.Copy().WithEndpoint(endpoint))
 	}
 	if endpoint, ok := os.LookupEnv("AWS_CLOUDTRAIL_ENDPOINT"); ok {
-		logger.Debug("Setting CloudTrail endpoint to %s", endpoint)
+		logrus.Debugf("Setting CloudTrail endpoint to %s", endpoint)
 		provider.cloudtrail = cloudtrail.New(s, s.Config.Copy().WithEndpoint(endpoint))
 	}
 
@@ -267,7 +268,7 @@ func (c *ClusterProvider) CheckAuth() error {
 		return fmt.Errorf("unexpected response from AWS STS")
 	}
 	c.Status.iamRoleARN = *output.Arn
-	logger.Debug("role ARN for the current session is %q", c.Status.iamRoleARN)
+	logrus.Debugf("role ARN for the current session is %q", c.Status.iamRoleARN)
 	return nil
 }
 
@@ -334,7 +335,7 @@ func (c *ClusterProvider) SetAvailabilityZones(spec *api.ClusterConfig, given []
 		return nil
 	}
 
-	logger.Debug("determining availability zones")
+	logrus.Debugf("determining availability zones")
 	azSelector := az.NewSelectorWithDefaults(c.Provider.EC2())
 	if c.Provider.Region() == api.RegionUSEast1 {
 		azSelector = az.NewSelectorWithMinRequired(c.Provider.EC2())
@@ -344,7 +345,7 @@ func (c *ClusterProvider) SetAvailabilityZones(spec *api.ClusterConfig, given []
 		return errors.Wrap(err, "getting availability zones")
 	}
 
-	logger.Info("setting availability zones to %v", zones)
+	logrus.Infof("setting availability zones to %v", zones)
 	spec.AvailabilityZones = zones
 
 	return nil
@@ -368,7 +369,7 @@ func (c *ClusterProvider) newSession(spec *api.ProviderConfig) *session.Session 
 			aws.LogDebugWithRequestErrors |
 			aws.LogDebugWithEventStreamBody)
 		config = config.WithLogger(aws.LoggerFunc(func(args ...interface{}) {
-			logger.Debug(fmt.Sprintln(args...))
+			logrus.Debugf(fmt.Sprintln(args...))
 		}))
 	}
 
@@ -396,7 +397,7 @@ func (c *ClusterProvider) newSession(spec *api.ProviderConfig) *session.Session 
 			spec.Region = *s.Config.Region
 		} else {
 			// if session config doesn't have region set, make recursive call forcing default region
-			logger.Debug("no region specified in flags or config, setting to %s", api.DefaultRegion)
+			logrus.Debugf("no region specified in flags or config, setting to %s", api.DefaultRegion)
 			spec.Region = api.DefaultRegion
 			return c.newSession(spec)
 		}

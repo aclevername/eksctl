@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -62,10 +63,10 @@ func doUpdateLegacySubnetSettings(cmd *cmdutils.Cmd) error {
 
 	stackManager := ctl.NewStackManager(cfg)
 
-	logger.Info("updating settings { MapPublicIpOnLaunch: enabled } for public subnets %q", cfg.PublicSubnetIDs())
+	logrus.Infof("updating settings { MapPublicIpOnLaunch: enabled } for public subnets %q", cfg.PublicSubnetIDs())
 	err = stackManager.EnsureMapPublicIPOnLaunchEnabled()
 	if err != nil {
-		logger.Warning(err.Error())
+		logrus.Warningf(err.Error())
 		return err
 	}
 

@@ -3,9 +3,9 @@ package upgrade
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/actions/cluster"
 
-	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -76,7 +76,7 @@ func DoUpgradeCluster(cmd *cmdutils.Cmd) error {
 	}
 
 	if cmd.ClusterConfigFile != "" {
-		logger.Warning("NOTE: cluster VPC (subnets, routing & NAT Gateway) configuration changes are not yet implemented")
+		logrus.Warningf("NOTE: cluster VPC (subnets, routing & NAT Gateway) configuration changes are not yet implemented")
 	}
 
 	c, err := cluster.New(cfg, ctl)

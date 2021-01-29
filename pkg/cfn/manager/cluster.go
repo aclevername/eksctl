@@ -7,6 +7,7 @@ import (
 
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 
@@ -29,7 +30,7 @@ func (c *StackCollection) makeClusterStackName() string {
 // createClusterTask creates the cluster
 func (c *StackCollection) createClusterTask(errs chan error, supportsManagedNodes bool) error {
 	name := c.makeClusterStackName()
-	logger.Info("building cluster stack %q", name)
+	logrus.Infof("building cluster stack %q", name)
 	stack := builder.NewClusterResourceSet(c.provider, c.spec, supportsManagedNodes, nil)
 	if err := stack.AddAllResources(); err != nil {
 		return err
@@ -82,7 +83,7 @@ func (c *StackCollection) RefreshFargatePodExecutionRoleARN() error {
 		}
 
 		if c.spec.IAM.FargatePodExecutionRoleARN == nil {
-			logger.Info("Fargate pod execution role is missing, fixing cluster stack to add Fargate resources")
+			logrus.Infof("Fargate pod execution role is missing, fixing cluster stack to add Fargate resources")
 			if err := c.FixClusterCompatibility(); err != nil {
 				return errors.Wrap(err, "error fixing cluster compatibility")
 			}
@@ -127,7 +128,7 @@ func (c *StackCollection) AppendNewClusterStackResource(plan, supportsManagedNod
 		return false, fmt.Errorf("unexpected template format of the current stack ")
 	}
 
-	logger.Info("re-building cluster stack %q", name)
+	logrus.Infof("re-building cluster stack %q", name)
 	newStack := builder.NewClusterResourceSet(c.provider, c.spec, supportsManagedNodes, &currentResources)
 	if err := newStack.AddAllResources(); err != nil {
 		return false, err
@@ -137,7 +138,7 @@ func (c *StackCollection) AppendNewClusterStackResource(plan, supportsManagedNod
 	if err != nil {
 		return false, errors.Wrapf(err, "rendering template for %q stack", name)
 	}
-	logger.Debug("newTemplate = %s", newTemplate)
+	logrus.Debugf("newTemplate = %s", newTemplate)
 
 	newResources := gjson.Get(string(newTemplate), resourcesRootPath)
 	newOutputs := gjson.Get(string(newTemplate), outputsRootPath)
@@ -146,7 +147,7 @@ func (c *StackCollection) AppendNewClusterStackResource(plan, supportsManagedNod
 		return false, errors.New("unexpected template format of the new version of the stack")
 	}
 
-	logger.Debug("currentTemplate = %s", currentTemplate)
+	logrus.Debugf("currentTemplate = %s", currentTemplate)
 
 	var iterErr error
 	iterFunc := func(list *[]string, root string, currentSet, key, value gjson.Result) bool {
@@ -191,11 +192,11 @@ func (c *StackCollection) AppendNewClusterStackResource(plan, supportsManagedNod
 		return false, nil
 	}
 
-	logger.Debug("currentTemplate = %s", currentTemplate)
+	logrus.Debugf("currentTemplate = %s", currentTemplate)
 
 	describeUpdate := fmt.Sprintf("updating stack to add new resources %v and outputs %v", addResources, addOutputs)
 	if plan {
-		logger.Info("(plan) %s", describeUpdate)
+		logrus.Infof("(plan) %s", describeUpdate)
 		return true, nil
 	}
 	return true, c.UpdateStack(name, c.MakeChangeSetName("update-cluster"), describeUpdate, TemplateBody(currentTemplate), nil)

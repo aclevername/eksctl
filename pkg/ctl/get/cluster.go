@@ -7,12 +7,12 @@ import (
 	"time"
 
 	awseks "github.com/aws/aws-sdk-go/service/eks"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/weaveworks/eksctl/pkg/eks"
 	"github.com/weaveworks/eksctl/pkg/printers"
 
-	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
@@ -55,7 +55,7 @@ func doGetCluster(cmd *cmdutils.Cmd, params *getCmdParams, listAllRegions bool) 
 	}
 
 	if regionGiven && listAllRegions {
-		logger.Warning("--region=%s is ignored, as --all-regions is given", cfg.Metadata.Region)
+		logrus.Warningf("--region=%s is ignored, as --all-regions is given", cfg.Metadata.Region)
 	}
 
 	if cfg.Metadata.Name != "" && cmd.NameArg != "" {

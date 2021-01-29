@@ -3,9 +3,9 @@ package delete
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/actions/cluster"
 
-	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -59,8 +59,8 @@ func doDeleteCluster(cmd *cmdutils.Cmd) error {
 		return err
 	}
 
-	logger.Info("deleting EKS cluster %q", meta.Name)
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	logrus.Infof("deleting EKS cluster %q", meta.Name)
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return err
 	}
 

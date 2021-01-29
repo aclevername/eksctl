@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/utils"
 )
@@ -71,7 +71,7 @@ type AutoResolver struct {
 // Resolve will return an AMI to use based on the default AMI for
 // each region
 func (r *AutoResolver) Resolve(region, version, instanceType, imageFamily string) (string, error) {
-	logger.Debug("resolving AMI using AutoResolver for region %s, instanceType %s and imageFamily %s", region, instanceType, imageFamily)
+	logrus.Debugf("resolving AMI using AutoResolver for region %s, instanceType %s and imageFamily %s", region, instanceType, imageFamily)
 
 	imageClasses := MakeImageSearchPatterns(version)[imageFamily]
 	namePattern := imageClasses[ImageClassGeneral]
@@ -79,7 +79,7 @@ func (r *AutoResolver) Resolve(region, version, instanceType, imageFamily string
 		var ok bool
 		namePattern, ok = imageClasses[ImageClassGPU]
 		if !ok {
-			logger.Critical("image family %s doesn't support GPU image class", imageFamily)
+			logrus.Errorf("image family %s doesn't support GPU image class", imageFamily)
 			return "", NewErrFailedResolution(region, version, instanceType, imageFamily)
 		}
 	}
@@ -88,14 +88,14 @@ func (r *AutoResolver) Resolve(region, version, instanceType, imageFamily string
 		var ok bool
 		namePattern, ok = imageClasses[ImageClassARM]
 		if !ok {
-			logger.Critical("image family %s doesn't support ARM image class", imageFamily)
+			logrus.Errorf("image family %s doesn't support ARM image class", imageFamily)
 			return "", NewErrFailedResolution(region, version, instanceType, imageFamily)
 		}
 	}
 
 	ownerAccount, err := OwnerAccountID(imageFamily, region)
 	if err != nil {
-		logger.Critical("%v", err)
+		logrus.Errorf("%v", err)
 		return "", NewErrFailedResolution(region, version, instanceType, imageFamily)
 	}
 

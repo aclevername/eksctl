@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
@@ -80,7 +80,7 @@ func doGetFargateProfile(cmd *cmdutils.Cmd, options *options) error {
 	clusterName := cmd.ClusterConfig.Metadata.Name
 	manager := fargate.NewFromProvider(clusterName, ctl.Provider)
 
-	logger.Debug("getting EKS cluster %q's Fargate profile(s)", clusterName)
+	logrus.Debugf("getting EKS cluster %q's Fargate profile(s)", clusterName)
 	profiles, err := getProfiles(&manager, options.ProfileName)
 	if err != nil {
 		return err

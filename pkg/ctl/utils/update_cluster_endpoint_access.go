@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -52,7 +53,7 @@ func doUpdateClusterEndpoints(cmd *cmdutils.Cmd, newPrivate bool, newPublic bool
 	if err != nil {
 		return err
 	}
-	logger.Info("using region %s", meta.Region)
+	logrus.Infof("using region %s", meta.Region)
 
 	if err := ctl.CheckAuth(); err != nil {
 		return err
@@ -69,7 +70,7 @@ func doUpdateClusterEndpoints(cmd *cmdutils.Cmd, newPrivate bool, newPublic bool
 
 	curPrivate, curPublic := *clusterVPCConfig.ClusterEndpoints.PrivateAccess, *clusterVPCConfig.ClusterEndpoints.PublicAccess
 
-	logger.Info("current Kubernetes API endpoint access: privateAccess=%v, publicAccess=%v",
+	logrus.Infof("current Kubernetes API endpoint access: privateAccess=%v, publicAccess=%v",
 		curPrivate, curPublic)
 
 	if cfg.VPC.ClusterEndpoints.PrivateAccess == nil {
@@ -103,7 +104,7 @@ func doUpdateClusterEndpoints(cmd *cmdutils.Cmd, newPrivate bool, newPublic bool
 
 	// if it's a private only cluster warn the user
 	if api.PrivateOnly(cfg.VPC.ClusterEndpoints) {
-		logger.Warning(api.ErrClusterEndpointPrivateOnly.Error())
+		logrus.Warningf(api.ErrClusterEndpointPrivateOnly.Error())
 	}
 
 	if !cmd.Plan {

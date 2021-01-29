@@ -3,8 +3,8 @@ package nodebootstrap
 import (
 	"strings"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cloudconfig"
 	"github.com/weaveworks/eksctl/pkg/utils"
@@ -110,6 +110,6 @@ func NewUserDataForAmazonLinux2(spec *api.ClusterConfig, ng *api.NodeGroup) (str
 		return "", errors.Wrap(err, "encoding user data")
 	}
 
-	logger.Debug("user-data = %s", body)
+	logrus.Debugf("user-data = %s", body)
 	return body, nil
 }

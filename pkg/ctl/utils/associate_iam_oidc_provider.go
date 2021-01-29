@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -60,7 +61,7 @@ func doAssociateIAMOIDCProvider(cmd *cmdutils.Cmd) error {
 		return err
 	}
 
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return err
 	}
 
@@ -78,7 +79,7 @@ func doAssociateIAMOIDCProvider(cmd *cmdutils.Cmd) error {
 			logger.Success("created IAM Open ID Connect provider for cluster %q in %q", meta.Name, meta.Region)
 		}
 	} else {
-		logger.Info("IAM Open ID Connect provider is already associated with cluster %q in %q", meta.Name, meta.Region)
+		logrus.Infof("IAM Open ID Connect provider is already associated with cluster %q in %q", meta.Name, meta.Region)
 	}
 
 	cmdutils.LogPlanModeWarning(cmd.Plan && !providerExists)

@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -48,7 +49,7 @@ func doUpdatePublicAccessCIDRs(cmd *cmdutils.Cmd) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("using region %s", meta.Region)
+	logrus.Infof("using region %s", meta.Region)
 
 	if err := ctl.CheckAuth(); err != nil {
 		return err
@@ -63,7 +64,7 @@ func doUpdatePublicAccessCIDRs(cmd *cmdutils.Cmd) error {
 		return err
 	}
 
-	logger.Info("current public access CIDRs: %v", clusterVPCConfig.PublicAccessCIDRs)
+	logrus.Infof("current public access CIDRs: %v", clusterVPCConfig.PublicAccessCIDRs)
 
 	if cidrsEqual(clusterVPCConfig.PublicAccessCIDRs, cfg.VPC.PublicAccessCIDRs) {
 		logger.Success("Public Endpoint Restrictions for cluster %q in %q is already up to date",

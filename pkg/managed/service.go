@@ -9,8 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/blang/semver"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/weaveworks/eksctl/pkg/version"
@@ -187,7 +187,7 @@ func (m *Service) UpgradeNodeGroup(options UpgradeOptions) error {
 		return err
 	}
 	if requiresUpdate {
-		logger.Info("updating nodegroup stack to a newer format before upgrading nodegroup version")
+		logrus.Infof("updating nodegroup stack to a newer format before upgrading nodegroup version")
 		if err := updateStack(stack); err != nil {
 			return err
 		}
@@ -238,7 +238,7 @@ func (m *Service) UpgradeNodeGroup(options UpgradeOptions) error {
 		}
 
 		if latest.LTE(current) && options.LaunchTemplateVersion == "" {
-			logger.Info("nodegroup %q is already up-to-date", *nodeGroup.NodegroupName)
+			logrus.Infof("nodegroup %q is already up-to-date", *nodeGroup.NodegroupName)
 			return nil
 		}
 		if latest.GTE(current) {
@@ -251,11 +251,11 @@ func (m *Service) UpgradeNodeGroup(options UpgradeOptions) error {
 
 	ngResource.ForceUpdateEnabled = gfnt.NewBoolean(options.ForceUpgrade)
 
-	logger.Info("upgrading nodegroup version")
+	logrus.Infof("upgrading nodegroup version")
 	if err := updateStack(stack); err != nil {
 		return err
 	}
-	logger.Info("nodegroup successfully upgraded")
+	logrus.Infof("nodegroup successfully upgraded")
 	return nil
 }
 

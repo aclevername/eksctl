@@ -3,18 +3,18 @@ package addon
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
 
 	"github.com/weaveworks/eksctl/pkg/cfn/builder"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 )
 
 func (a *Manager) Update(addon *api.Addon) error {
-	logger.Debug("addon: %v", addon)
+	logrus.Debugf("addon: %v", addon)
 
 	updateAddonInput := &eks.UpdateAddonInput{
 		AddonName:   &addon.Name,
@@ -24,7 +24,7 @@ func (a *Manager) Update(addon *api.Addon) error {
 
 	if addon.Force {
 		updateAddonInput.ResolveConflicts = aws.String("overwrite")
-		logger.Debug("setting resolve conflicts to overwrite")
+		logrus.Debugf("setting resolve conflicts to overwrite")
 
 	}
 
@@ -36,12 +36,12 @@ func (a *Manager) Update(addon *api.Addon) error {
 	if addon.Version == "" {
 		// preserve existing version
 		// Might be redundant, does the API care?
-		logger.Info("no new version provided, preserving existing version: %s", summary.Version)
+		logrus.Infof("no new version provided, preserving existing version: %s", summary.Version)
 
 		updateAddonInput.AddonVersion = &summary.Version
 	} else {
 		if summary.Version != addon.Version {
-			logger.Info("new version provided %s", addon.Version)
+			logrus.Infof("new version provided %s", addon.Version)
 		}
 		updateAddonInput.AddonVersion = &addon.Version
 	}
@@ -62,15 +62,15 @@ func (a *Manager) Update(addon *api.Addon) error {
 		}
 	}
 
-	logger.Info("updating addon")
-	logger.Debug(updateAddonInput.String())
+	logrus.Infof("updating addon")
+	logrus.Debugf(updateAddonInput.String())
 
 	output, err := a.clusterProvider.Provider.EKS().UpdateAddon(updateAddonInput)
 	if err != nil {
 		return fmt.Errorf("failed to update addon %q: %v", addon.Name, err)
 	}
 	if output != nil {
-		logger.Debug(output.String())
+		logrus.Debugf(output.String())
 	}
 	return nil
 }
@@ -128,10 +128,10 @@ func (a *Manager) createNewTemplate(addon *api.Addon, namespace, serviceAccount 
 
 func (a *Manager) createNewRole(addon *api.Addon, namespace, serviceAccount string) (string, error) {
 	if addon.AttachPolicyARNs != nil && len(addon.AttachPolicyARNs) != 0 {
-		logger.Info("creating role using provided policies ARNs")
+		logrus.Infof("creating role using provided policies ARNs")
 		return a.createRoleUsingAttachPolicyARNs(addon, namespace, serviceAccount)
 	}
 
-	logger.Info("creating role using provided policies")
+	logrus.Infof("creating role using provided policies")
 	return a.createRoleUsingAttachPolicy(addon, namespace, serviceAccount)
 }

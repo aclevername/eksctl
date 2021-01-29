@@ -21,11 +21,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kris-nova/logger"
-
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/sirupsen/logrus"
 )
 
 const maxRetries = 13
@@ -81,7 +80,7 @@ func (l LoggingRetryer) RetryRules(r *request.Request) time.Duration {
 		errorDescription = fmt.Sprintf("%d %s", r.HTTPResponse.StatusCode, r.HTTPResponse.Status)
 	}
 
-	logger.Warning("retryable error (%s) from %s - will retry after delay of %v", errorDescription, methodDescription, duration)
+	logrus.Warningf("retryable error (%s) from %s - will retry after delay of %v", errorDescription, methodDescription, duration)
 
 	return duration
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 )
 
@@ -30,6 +30,6 @@ func NewUserDataForWindows(spec *api.ClusterConfig, ng *api.NodeGroup) (string, 
 
 	userData := base64.StdEncoding.EncodeToString([]byte(bootstrapScript))
 
-	logger.Debug("user-data = %s", userData)
+	logrus.Debugf("user-data = %s", userData)
 	return userData, nil
 }

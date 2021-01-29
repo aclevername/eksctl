@@ -3,9 +3,8 @@ package utils
 import (
 	"fmt"
 
-	"github.com/kris-nova/logger"
-
 	awseks "github.com/aws/aws-sdk-go/service/eks"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -62,7 +61,7 @@ func describeAddonVersions(cmd *cmdutils.Cmd, addonName, k8sVersion, clusterName
 			return fmt.Errorf("failed to fetch cluster %q version: %v", clusterName, err)
 		}
 
-		logger.Info("Kubernetes version %q in use by cluster %q", *output.Cluster.Version, clusterName)
+		logrus.Infof("Kubernetes version %q in use by cluster %q", *output.Cluster.Version, clusterName)
 		cmd.ClusterConfig.Metadata.Version = *output.Cluster.Version
 	} else {
 		return fmt.Errorf("cluster name or kubernetes version must be set")

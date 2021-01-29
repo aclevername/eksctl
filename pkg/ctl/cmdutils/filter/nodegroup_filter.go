@@ -4,10 +4,10 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 
-	"github.com/kris-nova/logger"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
@@ -78,7 +78,7 @@ func (f *NodeGroupFilter) SetOnlyLocal(eksAPI eksiface.EKSAPI, lister stackListe
 
 	// Remote ones will be excluded
 	if f.remoteNodegroups.Len() > 0 {
-		logger.Info("%d existing %s(s) (%s) will be excluded", f.remoteNodegroups.Len(), "nodegroup", strings.Join(f.remoteNodegroups.List(), ","))
+		logrus.Infof("%d existing %s(s) (%s) will be excluded", f.remoteNodegroups.Len(), "nodegroup", strings.Join(f.remoteNodegroups.List(), ","))
 	}
 	return nil
 }
@@ -96,7 +96,7 @@ func (f *NodeGroupFilter) SetOnlyRemote(eksAPI eksiface.EKSAPI, lister stackList
 
 	// local ones will be excluded
 	if f.localNodegroups.Len() > 0 {
-		logger.Info("%d %s(s) present in the config file (%s) will be excluded", f.localNodegroups.Len(), "nodegroup", strings.Join(f.localNodegroups.List(), ","))
+		logrus.Infof("%d %s(s) present in the config file (%s) will be excluded", f.localNodegroups.Len(), "nodegroup", strings.Join(f.localNodegroups.List(), ","))
 	}
 	return nil
 }
@@ -129,14 +129,14 @@ func (f *NodeGroupFilter) loadLocalAndRemoteNodegroups(eksAPI eksiface.EKSAPI, l
 	// Get local nodegroups and discover if any specified don't have stacks
 	for _, localNodeGroup := range clusterConfig.GetAllNodeGroupNames() {
 		if !stackExists(nodeGroupsWithStacks, localNodeGroup) && !nodeExists(nodeGroupsWithoutStacks, localNodeGroup) {
-			logger.Debug("nodegroup %q present in the given config, but missing in the cluster", localNodeGroup)
+			logrus.Debugf("nodegroup %q present in the given config, but missing in the cluster", localNodeGroup)
 		}
 	}
 
 	for _, nodeGroupWithoutStack := range nodeGroupsWithoutStacks {
 		if !f.localNodegroups.Has(nodeGroupWithoutStack) {
 			ngBase := &api.NodeGroupBase{Name: nodeGroupWithoutStack}
-			logger.Debug("nodegroup %q present in the cluster, but missing from the given config", nodeGroupWithoutStack)
+			logrus.Debugf("nodegroup %q present in the cluster, but missing from the given config", nodeGroupWithoutStack)
 			clusterConfig.ManagedNodeGroups = append(clusterConfig.ManagedNodeGroups, &api.ManagedNodeGroup{NodeGroupBase: ngBase})
 		}
 	}
@@ -146,7 +146,7 @@ func (f *NodeGroupFilter) loadLocalAndRemoteNodegroups(eksAPI eksiface.EKSAPI, l
 		remoteNodeGroupName := s.NodeGroupName
 		if !f.localNodegroups.Has(remoteNodeGroupName) {
 			ngBase := &api.NodeGroupBase{Name: s.NodeGroupName}
-			logger.Debug("nodegroup %q present in the cluster, but missing from the given config", s.NodeGroupName)
+			logrus.Debugf("nodegroup %q present in the cluster, but missing from the given config", s.NodeGroupName)
 			if s.Type == api.NodeGroupTypeManaged {
 				clusterConfig.ManagedNodeGroups = append(clusterConfig.ManagedNodeGroups, &api.ManagedNodeGroup{NodeGroupBase: ngBase})
 			} else {

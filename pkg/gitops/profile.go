@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
@@ -57,7 +57,7 @@ func (p *Profile) Install(clusterConfig *api.ClusterConfig) error {
 		return errors.Wrapf(err, "unable to create temporary directory for %q", usersRepoName)
 	}
 	bootstrapProfile.OutputPath = filepath.Join(usersRepoDir, "base")
-	logger.Debug("directory %s will be used to clone the configuration repository and install the profile", usersRepoDir)
+	logrus.Debugf("directory %s will be used to clone the configuration repository and install the profile", usersRepoDir)
 
 	err = p.UserRepoGitClient.CloneRepoInPath(
 		usersRepoDir,
@@ -91,9 +91,9 @@ func (p *Profile) Install(clusterConfig *api.ClusterConfig) error {
 		return err
 	}
 
-	logger.Debug("deleting cloned directory %q", usersRepoDir)
+	logrus.Debugf("deleting cloned directory %q", usersRepoDir)
 	if err := p.IO.RemoveAll(usersRepoDir); err != nil {
-		logger.Warning("unable to delete cloned directory %q", usersRepoDir)
+		logrus.Warningf("unable to delete cloned directory %q", usersRepoDir)
 	}
 	return nil
 }
@@ -108,7 +108,7 @@ func (p *Profile) Generate(profile api.Profile) error {
 		return errors.Wrap(err, "please supply a valid Quick Start name or URL")
 	}
 
-	logger.Info("cloning repository %q:%s", profile.Source, profile.Revision)
+	logrus.Infof("cloning repository %q:%s", profile.Source, profile.Revision)
 	options := git.CloneOptions{
 		URL:    profile.Source,
 		Branch: profile.Revision,
@@ -127,16 +127,16 @@ func (p *Profile) Generate(profile api.Profile) error {
 		return errors.Wrapf(err, "error loading files from repository %s", profile.Source)
 	}
 
-	logger.Info("processing template files in repository")
+	logrus.Infof("processing template files in repository")
 	outputFiles, err := p.processFiles(allManifests, clonedDir)
 	if err != nil {
 		return errors.Wrapf(err, "error processing manifests from repository %s", profile.Source)
 	}
 
 	if len(outputFiles) > 0 {
-		logger.Info("writing new manifests to %q", profile.OutputPath)
+		logrus.Infof("writing new manifests to %q", profile.OutputPath)
 	} else {
-		logger.Info("no template files found, nothing to write")
+		logrus.Infof("no template files found, nothing to write")
 		return nil
 	}
 
@@ -147,12 +147,12 @@ func (p *Profile) Generate(profile api.Profile) error {
 
 	// Delete temporary clone of the quickstart repo
 	if clonedDir == "" {
-		logger.Debug("no cloned directory to delete")
+		logrus.Debugf("no cloned directory to delete")
 		return nil
 	}
-	logger.Debug("deleting cloned directory %q", clonedDir)
+	logrus.Debugf("deleting cloned directory %q", clonedDir)
 	if err := p.IO.RemoveAll(clonedDir); err != nil {
-		logger.Warning("unable to delete cloned directory %q", clonedDir)
+		logrus.Warningf("unable to delete cloned directory %q", clonedDir)
 	}
 
 	return nil
@@ -168,7 +168,7 @@ func (p *Profile) loadFiles(directory string) ([]fileprocessor.File, error) {
 			return nil
 		}
 
-		logger.Debug("found file %q", path)
+		logrus.Debugf("found file %q", path)
 		fileContents, err := p.IO.ReadFile(path)
 		if err != nil {
 			return errors.Wrapf(err, "cannot read file %q", path)
@@ -188,7 +188,7 @@ func (p *Profile) loadFiles(directory string) ([]fileprocessor.File, error) {
 func (p *Profile) ignoreFiles(baseDir string) error {
 	ignoreFilePath := path.Join(baseDir, eksctlIgnoreFilename)
 	if exists, _ := p.IO.Exists(ignoreFilePath); exists {
-		logger.Info("ignoring files declared in %s", eksctlIgnoreFilename)
+		logrus.Infof("ignoring files declared in %s", eksctlIgnoreFilename)
 		file, err := p.IO.Open(ignoreFilePath)
 		if err != nil {
 			return err
@@ -205,7 +205,7 @@ func (p *Profile) ignoreFiles(baseDir string) error {
 			if err != nil {
 				return err
 			}
-			logger.Info("ignored %q", pathToIgnore)
+			logrus.Infof("ignored %q", pathToIgnore)
 		}
 
 		// Remove the ignore file after finish
@@ -244,7 +244,7 @@ func (p *Profile) writeFiles(manifests []fileprocessor.File, outputPath string) 
 			return errors.Wrapf(err, "error creating output manifests dir: %q", outputPath)
 		}
 
-		logger.Debug("writing file %q", filePath)
+		logrus.Debugf("writing file %q", filePath)
 		err := p.IO.WriteFile(filePath, manifest.Data, 0644)
 		if err != nil {
 			return errors.Wrapf(err, "error writing manifest: %q", filePath)

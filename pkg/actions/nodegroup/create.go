@@ -6,6 +6,7 @@ import (
 
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	defaultaddons "github.com/weaveworks/eksctl/pkg/addons/default"
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils/filter"
@@ -90,7 +91,7 @@ func (m *Manager) Create(options CreateOpts, nodegroupFilter filter.NodeGroupFil
 		return err
 	}
 
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return err
 	}
 
@@ -106,7 +107,7 @@ func (m *Manager) Create(options CreateOpts, nodegroupFilter filter.NodeGroupFil
 	{
 		logFiltered()
 		logMsg := func(resource string, count int) {
-			logger.Info("will create a CloudFormation stack for each of %d %s in cluster %q", count, resource, meta.Name)
+			logrus.Infof("will create a CloudFormation stack for each of %d %s in cluster %q", count, resource, meta.Name)
 		}
 		if len(cfg.NodeGroups) > 0 {
 			logMsg("nodegroups", len(cfg.NodeGroups))
@@ -132,7 +133,7 @@ func (m *Manager) Create(options CreateOpts, nodegroupFilter filter.NodeGroupFil
 		}
 
 		if !awsNodeUsesIRSA && api.IsEnabled(cfg.IAM.WithOIDC) {
-			logger.Debug("cluster has withOIDC enabled but is not using IRSA for CNI, will add CNI policy to node role")
+			logrus.Debugf("cluster has withOIDC enabled but is not using IRSA for CNI, will add CNI policy to node role")
 		}
 
 		nodeGroupTasks := stackManager.NewUnmanagedNodeGroupTask(cfg.NodeGroups, supportsManagedNodes, !awsNodeUsesIRSA)
@@ -145,14 +146,14 @@ func (m *Manager) Create(options CreateOpts, nodegroupFilter filter.NodeGroupFil
 		}
 
 		taskTree.Append(allNodeGroupTasks)
-		logger.Info(taskTree.Describe())
+		logrus.Infof(taskTree.Describe())
 		errs := taskTree.DoAllSync()
 		if len(errs) > 0 {
-			logger.Info("%d error(s) occurred and nodegroups haven't been created properly, you may wish to check CloudFormation console", len(errs))
-			logger.Info("to cleanup resources, run 'eksctl delete nodegroup --region=%s --cluster=%s --name=<name>' for each of the failed nodegroup", meta.Region, meta.Name)
+			logrus.Infof("%d error(s) occurred and nodegroups haven't been created properly, you may wish to check CloudFormation console", len(errs))
+			logrus.Infof("to cleanup resources, run 'eksctl delete nodegroup --region=%s --cluster=%s --name=<name>' for each of the failed nodegroup", meta.Region, meta.Name)
 			for _, err := range errs {
 				if err != nil {
-					logger.Critical("%s\n", err.Error())
+					logrus.Errorf("%s\n", err.Error())
 				}
 			}
 			return fmt.Errorf("failed to create nodegroups for cluster %q", meta.Name)
@@ -164,7 +165,7 @@ func (m *Manager) Create(options CreateOpts, nodegroupFilter filter.NodeGroupFil
 	}
 
 	if err := ctl.ValidateExistingNodeGroupsForCompatibility(cfg, stackManager); err != nil {
-		logger.Critical("failed checking nodegroups", err.Error())
+		logrus.Errorf("failed checking nodegroups", err.Error())
 	}
 
 	return nil
@@ -172,14 +173,14 @@ func (m *Manager) Create(options CreateOpts, nodegroupFilter filter.NodeGroupFil
 
 func (m *Manager) postNodeCreationTasks(clientSet kubernetes.Interface, options CreateOpts) error {
 	tasks := m.ctl.ClusterTasksForNodeGroups(m.cfg, options.InstallNeuronDevicePlugin, options.InstallNvidiaDevicePlugin)
-	logger.Info(tasks.Describe())
+	logrus.Infof(tasks.Describe())
 	errs := tasks.DoAllSync()
 	if len(errs) > 0 {
-		logger.Info("%d error(s) occurred and nodegroups haven't been created properly, you may wish to check CloudFormation console", len(errs))
-		logger.Info("to cleanup resources, run 'eksctl delete nodegroup --region=%s --cluster=%s --name=<name>' for each of the failed nodegroups", m.cfg.Metadata.Region, m.cfg.Metadata.Name)
+		logrus.Infof("%d error(s) occurred and nodegroups haven't been created properly, you may wish to check CloudFormation console", len(errs))
+		logrus.Infof("to cleanup resources, run 'eksctl delete nodegroup --region=%s --cluster=%s --name=<name>' for each of the failed nodegroups", m.cfg.Metadata.Region, m.cfg.Metadata.Name)
 		for _, err := range errs {
 			if err != nil {
-				logger.Critical("%s\n", err.Error())
+				logrus.Errorf("%s\n", err.Error())
 			}
 		}
 		return fmt.Errorf("failed to create nodegroups for cluster %q", m.cfg.Metadata.Name)
@@ -205,7 +206,7 @@ func (m *Manager) postNodeCreationTasks(clientSet kubernetes.Interface, options 
 	for _, ng := range m.cfg.ManagedNodeGroups {
 		if err := m.ctl.WaitForNodes(clientSet, ng); err != nil {
 			if m.cfg.PrivateCluster.Enabled {
-				logger.Info("error waiting for nodes to join the cluster; this command was likely run from outside the cluster's VPC as the API server is not reachable, nodegroup(s) should still be able to join the cluster, underlying error is: %v", err)
+				logrus.Infof("error waiting for nodes to join the cluster; this command was likely run from outside the cluster's VPC as the API server is not reachable, nodegroup(s) should still be able to join the cluster, underlying error is: %v", err)
 				break
 			} else {
 				return err
@@ -220,21 +221,21 @@ func (m *Manager) postNodeCreationTasks(clientSet kubernetes.Interface, options 
 func ShowDevicePluginMessageForNodeGroup(nodeGroup *api.NodeGroup, installNeuronPlugin, installNvidiaPlugin bool) {
 	if api.HasInstanceType(nodeGroup, utils.IsInferentiaInstanceType) {
 		if installNeuronPlugin {
-			logger.Info("as you are using the EKS-Optimized Accelerated AMI with an inf1 instance type, the AWS Neuron Kubernetes device plugin was automatically installed.")
-			logger.Info("\t to skip installing it, use --install-neuron-plugin=false.")
+			logrus.Infof("as you are using the EKS-Optimized Accelerated AMI with an inf1 instance type, the AWS Neuron Kubernetes device plugin was automatically installed.")
+			logrus.Infof("\t to skip installing it, use --install-neuron-plugin=false.")
 		} else {
 			// if neuron instance type, give instructions
-			logger.Info("as you are using the EKS-Optimized Accelerated AMI with an inf1 instance type, you will need to install the AWS Neuron Kubernetes device plugin.")
-			logger.Info("\t see the following page for instructions: https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/tutorial-k8s.md")
+			logrus.Infof("as you are using the EKS-Optimized Accelerated AMI with an inf1 instance type, you will need to install the AWS Neuron Kubernetes device plugin.")
+			logrus.Infof("\t see the following page for instructions: https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/tutorial-k8s.md")
 		}
 	} else if api.HasInstanceType(nodeGroup, utils.IsGPUInstanceType) {
 		if installNvidiaPlugin {
-			logger.Info("as you are using the EKS-Optimized Accelerated AMI with a GPU-enabled instance type, the Nvidia Kubernetes device plugin was automatically installed.")
-			logger.Info("\t to skip installing it, use --install-nvidia-plugin=false.")
+			logrus.Infof("as you are using the EKS-Optimized Accelerated AMI with a GPU-enabled instance type, the Nvidia Kubernetes device plugin was automatically installed.")
+			logrus.Infof("\t to skip installing it, use --install-nvidia-plugin=false.")
 		} else {
 			// if GPU instance type, give instructions
-			logger.Info("as you are using a GPU optimized instance type you will need to install NVIDIA Kubernetes device plugin.")
-			logger.Info("\t see the following page for instructions: https://github.com/NVIDIA/k8s-device-plugin")
+			logrus.Infof("as you are using a GPU optimized instance type you will need to install NVIDIA Kubernetes device plugin.")
+			logrus.Infof("\t see the following page for instructions: https://github.com/NVIDIA/k8s-device-plugin")
 		}
 	}
 }
@@ -247,10 +248,10 @@ func checkVersion(ctl *eks.ClusterProvider, meta *api.ClusterMeta) error {
 		meta.Version = "auto"
 	case "default":
 		meta.Version = api.DefaultVersion
-		logger.Info("will use default version (%s) for new nodegroup(s)", meta.Version)
+		logrus.Infof("will use default version (%s) for new nodegroup(s)", meta.Version)
 	case "latest":
 		meta.Version = api.LatestVersion
-		logger.Info("will use latest version (%s) for new nodegroup(s)", meta.Version)
+		logrus.Infof("will use latest version (%s) for new nodegroup(s)", meta.Version)
 	default:
 		if !api.IsSupportedVersion(meta.Version) {
 			if api.IsDeprecatedVersion(meta.Version) {
@@ -264,10 +265,10 @@ func checkVersion(ctl *eks.ClusterProvider, meta *api.ClusterMeta) error {
 		return fmt.Errorf("unable to get control plane version")
 	} else if meta.Version == "auto" {
 		meta.Version = v
-		logger.Info("will use version %s for new nodegroup(s) based on control plane version", meta.Version)
+		logrus.Infof("will use version %s for new nodegroup(s) based on control plane version", meta.Version)
 	} else if meta.Version != v {
 		hint := "--version=auto"
-		logger.Warning("will use version %s for new nodegroup(s), while control plane version is %s; to automatically inherit the version use %q", meta.Version, v, hint)
+		logrus.Warningf("will use version %s for new nodegroup(s), while control plane version is %s; to automatically inherit the version use %q", meta.Version, v, hint)
 	}
 
 	return nil
@@ -289,7 +290,7 @@ func checkARMSupport(ctl *eks.ClusterProvider, clientSet kubernetes.Interface, c
 			return err
 		}
 		if !upToDate {
-			logger.Critical("to create an ARM nodegroup kube-proxy, coredns and aws-node addons should be up to date. " +
+			logrus.Errorf("to create an ARM nodegroup kube-proxy, coredns and aws-node addons should be up to date. " +
 				"Please use `eksctl utils update-coredns`, `eksctl utils update-kube-proxy` and `eksctl utils update-aws-node` before proceeding.")
 			return errors.New("expected default addons up to date")
 		}

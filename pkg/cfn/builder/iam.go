@@ -3,7 +3,7 @@ package builder
 import (
 	"fmt"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/iam"
 
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
@@ -324,7 +324,7 @@ func (rs *IAMRoleResourceSet) AddAllResources() error {
 
 	var assumeRolePolicyDocument cft.MapOfInterfaces
 	if rs.serviceAccount != "" && rs.namespace != "" {
-		logger.Debug("service account location provided: %s/%s, adding sub condition", api.AWSNodeMeta.Namespace, api.AWSNodeMeta.Name)
+		logrus.Debugf("service account location provided: %s/%s, adding sub condition", api.AWSNodeMeta.Namespace, api.AWSNodeMeta.Name)
 		assumeRolePolicyDocument = rs.oidc.MakeAssumeRolePolicyDocumentWithServiceAccountConditions(rs.namespace, rs.serviceAccount)
 	} else {
 		assumeRolePolicyDocument = rs.oidc.MakeAssumeRolePolicyDocument()

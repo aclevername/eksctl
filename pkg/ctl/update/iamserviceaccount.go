@@ -3,9 +3,9 @@ package update
 import (
 	"errors"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/actions/iam"
 
-	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -96,12 +96,12 @@ func doUpdateIAMServiceAccount(cmd *cmdutils.Cmd) error {
 	}
 
 	if !providerExists {
-		logger.Warning("no IAM OIDC provider associated with cluster, try 'eksctl utils associate-iam-oidc-provider --region=%s --cluster=%s'", meta.Region, meta.Name)
+		logrus.Warningf("no IAM OIDC provider associated with cluster, try 'eksctl utils associate-iam-oidc-provider --region=%s --cluster=%s'", meta.Region, meta.Name)
 		return errors.New("unable to update iamserviceaccount(s) without IAM OIDC provider enabled")
 	}
 	stackManager := ctl.NewStackManager(cfg)
 
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return err
 	}
 

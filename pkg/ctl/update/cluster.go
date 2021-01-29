@@ -3,7 +3,7 @@ package update
 import (
 	"time"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -43,7 +43,7 @@ func updateClusterCmd(cmd *cmdutils.Cmd) {
 
 	cmd.CobraCommand.RunE = func(_ *cobra.Command, args []string) error {
 		cmd.NameArg = cmdutils.GetNameArg(args)
-		logger.Warning("This command is to be deprecated. Please use 'eksctl upgrade cluster' instead")
+		logrus.Warningf("This command is to be deprecated. Please use 'eksctl upgrade cluster' instead")
 
 		if err := cmdutils.NewMetadataLoader(cmd).Load(); err != nil {
 			return err

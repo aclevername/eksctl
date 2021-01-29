@@ -3,7 +3,7 @@ package cluster
 import (
 	"time"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/eks"
 )
@@ -25,10 +25,10 @@ func New(cfg *api.ClusterConfig, ctl *eks.ClusterProvider) (Cluster, error) {
 	}
 
 	if hasClusterStack {
-		logger.Debug("Cluster %q was created by eksctl", cfg.Metadata.Name)
+		logrus.Debugf("Cluster %q was created by eksctl", cfg.Metadata.Name)
 		return NewOwnedCluster(cfg, ctl, stackManager)
 	}
-	logger.Debug("Cluster %q was not created by eksctl", cfg.Metadata.Name)
+	logrus.Debugf("Cluster %q was not created by eksctl", cfg.Metadata.Name)
 
 	clientSet, err := ctl.NewStdClientSet(cfg)
 	if err != nil {

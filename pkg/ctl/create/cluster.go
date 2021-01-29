@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/utils"
 
 	"github.com/weaveworks/eksctl/pkg/actions/addon"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -138,7 +139,7 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 
 	// if it's a private only cluster warn the user
 	if api.PrivateOnly(cfg.VPC.ClusterEndpoints) {
-		logger.Warning(api.ErrClusterEndpointPrivateOnly.Error())
+		logrus.Warningf(api.ErrClusterEndpointPrivateOnly.Error())
 	}
 
 	if err := ctl.CheckAuth(); err != nil {
@@ -236,7 +237,7 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 			}
 
 			logger.Success("using %s from kops cluster %q", subnetInfo(), params.KopsClusterNameForVPC)
-			logger.Warning(customNetworkingNotice)
+			logrus.Warningf(customNetworkingNotice)
 			return nil
 		}
 
@@ -254,7 +255,7 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 		}
 
 		if err := cfg.HasSufficientSubnets(); err != nil {
-			logger.Critical("unable to use given %s", subnetInfo())
+			logrus.Errorf("unable to use given %s", subnetInfo())
 			return err
 		}
 
@@ -265,7 +266,7 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 		}
 
 		logger.Success("using existing %s", subnetInfo())
-		logger.Warning(customNetworkingNotice)
+		logrus.Warningf(customNetworkingNotice)
 		return nil
 	}
 
@@ -278,14 +279,14 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 		return err
 	}
 
-	logger.Info("using Kubernetes version %s", meta.Version)
-	logger.Info("creating %s", cfg.LogString())
+	logrus.Infof("using Kubernetes version %s", meta.Version)
+	logrus.Infof("creating %s", cfg.LogString())
 
 	// TODO dry-run mode should provide a way to render config with all defaults set
 	// we should also make a call to resolve the AMI and write the result, similarly
 	// the body of the SSH key can be read
 
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return err
 	}
 
@@ -293,7 +294,7 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 		stackManager := ctl.NewStackManager(cfg)
 		if cmd.ClusterConfigFile == "" {
 			logMsg := func(resource string) {
-				logger.Info("will create 2 separate CloudFormation stacks for cluster itself and the initial %s", resource)
+				logrus.Infof("will create 2 separate CloudFormation stacks for cluster itself and the initial %s", resource)
 			}
 			if len(cfg.NodeGroups) == 1 {
 				logMsg("nodegroup")
@@ -302,7 +303,7 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 			}
 		} else {
 			logMsg := func(resource string, count int) {
-				logger.Info("will create a CloudFormation stack for cluster itself and %d %s stack(s)", count, resource)
+				logrus.Infof("will create a CloudFormation stack for cluster itself and %d %s stack(s)", count, resource)
 			}
 			logFiltered()
 
@@ -310,7 +311,7 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 			logMsg("managed nodegroup", len(cfg.ManagedNodeGroups))
 		}
 
-		logger.Info("if you encounter any issues, check CloudFormation console or try 'eksctl utils describe-stacks --region=%s --cluster=%s'", meta.Region, meta.Name)
+		logrus.Infof("if you encounter any issues, check CloudFormation console or try 'eksctl utils describe-stacks --region=%s --cluster=%s'", meta.Region, meta.Name)
 		supportsManagedNodes, err := eks.VersionSupportsManagedNodes(cfg.Metadata.Version)
 		if err != nil {
 			return err
@@ -331,18 +332,18 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 			taskTree = stackManager.NewTasksToCreateClusterWithNodeGroups(cfg.NodeGroups, cfg.ManagedNodeGroups, supportsManagedNodes, postClusterCreationTasks)
 		}
 
-		logger.Info(taskTree.Describe())
+		logrus.Infof(taskTree.Describe())
 		if errs := taskTree.DoAllSync(); len(errs) > 0 {
-			logger.Warning("%d error(s) occurred and cluster hasn't been created properly, you may wish to check CloudFormation console", len(errs))
-			logger.Info("to cleanup resources, run 'eksctl delete cluster --region=%s --name=%s'", meta.Region, meta.Name)
+			logrus.Warningf("%d error(s) occurred and cluster hasn't been created properly, you may wish to check CloudFormation console", len(errs))
+			logrus.Infof("to cleanup resources, run 'eksctl delete cluster --region=%s --name=%s'", meta.Region, meta.Name)
 			for _, err := range errs {
-				logger.Critical("%s\n", err.Error())
+				logrus.Errorf("%s\n", err.Error())
 			}
 			return fmt.Errorf("failed to create cluster %q", meta.Name)
 		}
 	}
 
-	logger.Info("waiting for the control plane availability...")
+	logrus.Infof("waiting for the control plane availability...")
 
 	// obtain cluster credentials, write kubeconfig
 
@@ -355,7 +356,7 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 
 			params.KubeconfigPath, err = kubeconfig.Write(params.KubeconfigPath, *kubectlConfig, params.SetContext)
 			if err != nil {
-				logger.Warning("unable to write kubeconfig %s, please retry with 'eksctl utils write-kubeconfig -n %s': %v", params.KubeconfigPath, meta.Name, err)
+				logrus.Warningf("unable to write kubeconfig %s, please retry with 'eksctl utils write-kubeconfig -n %s': %v", params.KubeconfigPath, meta.Name, err)
 			} else {
 				logger.Success("saved kubeconfig as %q", params.KubeconfigPath)
 			}
@@ -365,12 +366,12 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 
 		ngTasks := ctl.ClusterTasksForNodeGroups(cfg, params.InstallNeuronDevicePlugin, params.InstallNvidiaDevicePlugin)
 
-		logger.Info(ngTasks.Describe())
+		logrus.Infof(ngTasks.Describe())
 		if errs := ngTasks.DoAllSync(); len(errs) > 0 {
-			logger.Warning("%d error(s) occurred and post actions have failed, you may wish to check CloudFormation console", len(errs))
-			logger.Info("to cleanup resources, run 'eksctl delete cluster --region=%s --name=%s'", meta.Region, meta.Name)
+			logrus.Warningf("%d error(s) occurred and post actions have failed, you may wish to check CloudFormation console", len(errs))
+			logrus.Infof("to cleanup resources, run 'eksctl delete cluster --region=%s --name=%s'", meta.Region, meta.Name)
 			for _, err := range errs {
-				logger.Critical("%s\n", err.Error())
+				logrus.Errorf("%s\n", err.Error())
 			}
 			return fmt.Errorf("failed to create cluster %q", meta.Name)
 		}
@@ -424,24 +425,24 @@ func doCreateCluster(cmd *cmdutils.Cmd, ngFilter *filter.NodeGroupFilter, params
 			return err
 		}
 		if err := kubectl.CheckAllCommands(params.KubeconfigPath, params.SetContext, kubeconfigContextName, env); err != nil {
-			logger.Critical("%s\n", err.Error())
-			logger.Info("cluster should be functional despite missing (or misconfigured) client binaries")
+			logrus.Errorf("%s\n", err.Error())
+			logrus.Infof("cluster should be functional despite missing (or misconfigured) client binaries")
 		}
 
 		if cfg.PrivateCluster.Enabled {
 			// disable public access
-			logger.Info("disabling public endpoint access for the cluster")
+			logrus.Infof("disabling public endpoint access for the cluster")
 			cfg.VPC.ClusterEndpoints.PublicAccess = api.Disabled()
 			if err := ctl.UpdateClusterConfigForEndpoints(cfg); err != nil {
 				return errors.Wrap(err, "error disabling public endpoint access for the cluster")
 			}
-			logger.Info("fully private cluster %q has been created. For subsequent operations, eksctl must be run from within the cluster's VPC, a peered VPC or some other means like AWS Direct Connect", cfg.Metadata.Name)
+			logrus.Infof("fully private cluster %q has been created. For subsequent operations, eksctl must be run from within the cluster's VPC, a peered VPC or some other means like AWS Direct Connect", cfg.Metadata.Name)
 		}
 	}
 
 	logger.Success("%s is ready", meta.LogString())
 
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return err
 	}
 

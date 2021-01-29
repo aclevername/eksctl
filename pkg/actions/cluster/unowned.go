@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -18,8 +20,6 @@ import (
 	"github.com/weaveworks/eksctl/pkg/kubernetes"
 
 	iamoidc "github.com/weaveworks/eksctl/pkg/iam/oidc"
-
-	"github.com/kris-nova/logger"
 
 	awseks "github.com/aws/aws-sdk-go/service/eks"
 
@@ -101,12 +101,12 @@ func (c *UnownedCluster) deleteFargateRoleIfExists() error {
 	}
 
 	if stack != nil {
-		logger.Info("deleting fargate role")
+		logrus.Infof("deleting fargate role")
 		_, err = c.stackManager.DeleteStackBySpec(stack)
 		return err
 	}
 
-	logger.Debug("no fargate role found")
+	logrus.Debugf("no fargate role found")
 	return nil
 }
 
@@ -165,16 +165,16 @@ func (c *UnownedCluster) deleteIAMAndOIDC(wait bool, clientSetGetter kubernetes.
 	}
 
 	if tasksTree.Len() == 0 {
-		logger.Warning("no IAM and OIDC resources were found for %q", c.cfg.Metadata.Name)
+		logrus.Warningf("no IAM and OIDC resources were found for %q", c.cfg.Metadata.Name)
 		return nil
 	}
 
-	logger.Info(tasksTree.Describe())
+	logrus.Infof(tasksTree.Describe())
 	if errs := tasksTree.DoAllSync(); len(errs) > 0 {
 		return handleErrors(errs, "deleting cluster IAM and OIDC")
 	}
 
-	logger.Info("all IAM and OIDC resources were deleted")
+	logrus.Infof("all IAM and OIDC resources were deleted")
 	return nil
 }
 
@@ -187,13 +187,13 @@ func (c *UnownedCluster) deleteCluster(clusterName string, waitTimeout time.Dura
 		return err
 	}
 
-	logger.Info("initiated deletion of cluster %q", clusterName)
+	logrus.Infof("initiated deletion of cluster %q", clusterName)
 	if out != nil {
-		logger.Debug("delete cluster response: %s", out.String())
+		logrus.Debugf("delete cluster response: %s", out.String())
 	}
 
 	if !wait {
-		logger.Info("to see the status of the deletion run `eksctl get cluster --name %s --region %s`", clusterName, c.cfg.Metadata.Region)
+		logrus.Infof("to see the status of the deletion run `eksctl get cluster --name %s --region %s`", clusterName, c.cfg.Metadata.Region)
 		return nil
 	}
 	newRequest := func() *request.Request {
@@ -228,7 +228,7 @@ func (c *UnownedCluster) deleteAndWaitForNodegroupsDeletion(clusterName string, 
 	}
 
 	if len(nodegroups) == 0 {
-		logger.Info("no nodegroups to delete")
+		logrus.Infof("no nodegroups to delete")
 		return nil
 	}
 
@@ -241,8 +241,8 @@ func (c *UnownedCluster) deleteAndWaitForNodegroupsDeletion(clusterName string, 
 		if err != nil {
 			return err
 		}
-		logger.Info("initiated deletion of nodegroup %q", *nodeGroupName)
-		logger.Debug("delete nodegroup %q response: %s", *nodeGroupName, out.String())
+		logrus.Infof("initiated deletion of nodegroup %q", *nodeGroupName)
+		logrus.Debugf("delete nodegroup %q response: %s", *nodeGroupName, out.String())
 	}
 
 	condition := func() (bool, error) {
@@ -253,11 +253,11 @@ func (c *UnownedCluster) deleteAndWaitForNodegroupsDeletion(clusterName string, 
 			return false, err
 		}
 		if len(nodeGroups.Nodegroups) == 0 {
-			logger.Info("all nodegroups for cluster %q successfully deleted", clusterName)
+			logrus.Infof("all nodegroups for cluster %q successfully deleted", clusterName)
 			return true, nil
 		}
 
-		logger.Info("waiting for nodegroups to be deleted, %d remaining", len(nodeGroups.Nodegroups))
+		logrus.Infof("waiting for nodegroups to be deleted, %d remaining", len(nodeGroups.Nodegroups))
 		return false, nil
 	}
 

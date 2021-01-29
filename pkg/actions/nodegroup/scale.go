@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/utils/waiters"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,7 +15,7 @@ import (
 )
 
 func (m *Manager) Scale(ng *api.NodeGroup) error {
-	logger.Info("scaling nodegroup %q in cluster %s", ng.Name, m.cfg.Metadata.Name)
+	logrus.Infof("scaling nodegroup %q in cluster %s", ng.Name, m.cfg.Metadata.Name)
 	stackManager := m.ctl.NewStackManager(m.cfg)
 
 	hasStacks, err := m.hasStacks(ng.Name)
@@ -84,6 +84,6 @@ func (m *Manager) scale(ng *api.NodeGroup) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("nodegroup successfully scaled")
+	logrus.Infof("nodegroup successfully scaled")
 	return nil
 }

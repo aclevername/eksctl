@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/assetutil"
 	"github.com/weaveworks/eksctl/pkg/kubernetes"
 
@@ -104,7 +104,7 @@ func applyDevicePlugin(dp DevicePlugin) error {
 			if err != nil {
 				return errors.Wrap(err, "calling create or replace on raw device plugin daemonset")
 			}
-			logger.Info(msg)
+			logrus.Infof(msg)
 			if err := watchDaemonSetReady(dp.RawClient().ClientSet().AppsV1().DaemonSets(daemonSet.Namespace), daemonSet.Name); err != nil {
 				return errors.Wrap(err, "waiting for device plugin daemonset to become ready")
 			}
@@ -113,7 +113,7 @@ func applyDevicePlugin(dp DevicePlugin) error {
 			if err != nil {
 				return errors.Wrap(err, "calling create or replace on raw device plugin rawResource")
 			}
-			logger.Info(status)
+			logrus.Infof(status)
 		}
 	}
 	return nil

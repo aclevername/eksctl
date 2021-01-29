@@ -1,8 +1,8 @@
 package fargate
 
 import (
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/builder"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
@@ -50,7 +50,7 @@ func EnsureUnownedClusterReadyForFargate(
 		})
 		errs := taskTree.DoAllSync()
 		for _, e := range errs {
-			logger.Critical("%s\n", e.Error())
+			logrus.Errorf("%s\n", e.Error())
 		}
 		if len(errs) > 0 {
 			return errors.New("couldn't create fargate stack")

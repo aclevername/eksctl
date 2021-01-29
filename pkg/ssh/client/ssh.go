@@ -7,9 +7,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/utils/file"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -39,7 +39,7 @@ func LoadKeyFromFile(filePath, clusterName, ngName string, ec2API ec2iface.EC2AP
 	}
 	keyName := getKeyName(clusterName, ngName, fingerprint)
 
-	logger.Info("using SSH public key %q as %q ", expandedPath, keyName)
+	logrus.Infof("using SSH public key %q as %q ", expandedPath, keyName)
 
 	// Import SSH key in EC2
 	if err := importKey(keyName, fingerprint, &key, ec2API); err != nil {
@@ -56,7 +56,7 @@ func LoadKeyByContent(key *string, clusterName, ngName string, ec2API ec2iface.E
 	}
 	keyName := getKeyName(clusterName, ngName, fingerprint)
 
-	logger.Info("using SSH public key %q ", *key)
+	logrus.Infof("using SSH public key %q ", *key)
 
 	// Import SSH key in EC2
 	if err := importKey(keyName, fingerprint, key, ec2API); err != nil {
@@ -69,20 +69,20 @@ func LoadKeyByContent(key *string, clusterName, ngName string, ec2API ec2iface.E
 func DeleteKeys(clusterName string, ec2API ec2iface.EC2API) {
 	existing, err := ec2API.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{})
 	if err != nil {
-		logger.Debug("cannot describe keys: %v", err)
+		logrus.Debugf("cannot describe keys: %v", err)
 		return
 	}
 	var matching []*string
 	prefix := getKeyName(clusterName, "", "")
-	logger.Debug("existing = %#v", existing)
+	logrus.Debugf("existing = %#v", existing)
 	for _, e := range existing.KeyPairs {
 		if !strings.HasPrefix(*e.KeyName, prefix) {
 			continue
 		}
 		nameParts := strings.Split(*e.KeyName, "-")
-		logger.Debug("existing key %q matches prefix", *e.KeyName)
+		logrus.Debugf("existing key %q matches prefix", *e.KeyName)
 		if nameParts[len(nameParts)-1] == *e.KeyFingerprint {
-			logger.Debug("existing key %q matches fingerprint", *e.KeyName)
+			logrus.Debugf("existing key %q matches fingerprint", *e.KeyName)
 			matching = append(matching, e.KeyName)
 		}
 	}
@@ -90,9 +90,9 @@ func DeleteKeys(clusterName string, ec2API ec2iface.EC2API) {
 		input := &ec2.DeleteKeyPairInput{
 			KeyName: matching[i],
 		}
-		logger.Debug("deleting key %q", *matching[i])
+		logrus.Debugf("deleting key %q", *matching[i])
 		if _, err := ec2API.DeleteKeyPair(input); err != nil {
-			logger.Debug("key pair couldn't be deleted: %v", err)
+			logrus.Debugf("key pair couldn't be deleted: %v", err)
 		}
 	}
 }
@@ -119,7 +119,7 @@ func importKey(keyName, fingerprint string, keyContent *string, ec2API ec2iface.
 			return fmt.Errorf("SSH public key %s already exists, but fingerprints don't match (exected: %q, got: %q)", keyName, fingerprint, *existing.KeyFingerprint)
 		}
 
-		logger.Debug("SSH public key %s already exists", keyName)
+		logrus.Debugf("SSH public key %s already exists", keyName)
 		return nil
 	}
 
@@ -128,7 +128,7 @@ func importKey(keyName, fingerprint string, keyContent *string, ec2API ec2iface.
 		KeyName:           &keyName,
 		PublicKeyMaterial: []byte(*keyContent),
 	}
-	logger.Debug("importing SSH public key %q", keyName)
+	logrus.Debugf("importing SSH public key %q", keyName)
 
 	if _, err := ec2API.ImportKeyPair(input); err != nil {
 		return errors.Wrap(err, "importing SSH public key")
@@ -166,7 +166,7 @@ func findKeyInEc2(name string, ec2API ec2iface.EC2API) (*ec2.KeyPairInfo, error)
 	}
 
 	if len(output.KeyPairs) != 1 {
-		logger.Debug("output = %#v", output)
+		logrus.Debugf("output = %#v", output)
 		return nil, fmt.Errorf("unexpected number of key pairs found (expected: 1, got: %d)", len(output.KeyPairs))
 	}
 	return output.KeyPairs[0], nil

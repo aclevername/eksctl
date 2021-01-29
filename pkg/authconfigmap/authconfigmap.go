@@ -11,8 +11,8 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,7 +83,7 @@ func NewFromClientSet(clientSet kubernetes.Interface) (*AuthConfigMap, error) {
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, errors.Wrapf(err, "getting auth ConfigMap")
 	}
-	logger.Debug("aws-auth = %s", awsutil.Prettify(cm))
+	logrus.Debugf("aws-auth = %s", awsutil.Prettify(cm))
 	return New(client, cm), nil
 }
 
@@ -97,7 +97,7 @@ func (a *AuthConfigMap) AddAccount(account string) error {
 	// Distinct and sorted account numbers
 	accounts = append(accounts, account)
 	accounts = sets.NewString(accounts...).List()
-	logger.Info("adding account %q to auth ConfigMap", account)
+	logrus.Infof("adding account %q to auth ConfigMap", account)
 	return a.setAccounts(accounts)
 }
 
@@ -120,7 +120,7 @@ func (a *AuthConfigMap) RemoveAccount(account string) error {
 	if !found {
 		return fmt.Errorf("account %q not found in auth ConfigMap", account)
 	}
-	logger.Info("removing account %q from auth ConfigMap", account)
+	logrus.Infof("removing account %q from auth ConfigMap", account)
 	return a.setAccounts(newAccounts)
 }
 
@@ -165,7 +165,7 @@ func (a *AuthConfigMap) AddIdentityIfNotPresent(identity iam.Identity, exists fu
 
 	identities = append(identities, identity)
 
-	logger.Info("adding identity %q to auth ConfigMap", identity.ARN())
+	logrus.Infof("adding identity %q to auth ConfigMap", identity.ARN())
 	return a.setIdentities(identities)
 }
 
@@ -184,7 +184,7 @@ func (a *AuthConfigMap) RemoveIdentity(arnToDelete string, all bool) error {
 	for i, identity := range identities {
 		arn := identity.ARN()
 		if arn == arnToDelete {
-			logger.Info("removing identity %q from auth ConfigMap (username = %q, groups = %q)", arnToDelete, identity.Username(), identity.Groups())
+			logrus.Infof("removing identity %q from auth ConfigMap (username = %q, groups = %q)", arnToDelete, identity.Username(), identity.Groups())
 			if !all {
 				identities = append(identities[:i], identities[i+1:]...)
 				return a.setIdentities(identities)
@@ -295,7 +295,7 @@ func AddNodeGroup(clientSet kubernetes.Interface, ng *api.NodeGroup) error {
 	if err := acm.Save(); err != nil {
 		return errors.Wrap(err, "saving auth ConfigMap")
 	}
-	logger.Debug("saved auth ConfigMap for %q", ng.Name)
+	logrus.Debugf("saved auth ConfigMap for %q", ng.Name)
 	return nil
 }
 
@@ -312,6 +312,6 @@ func RemoveNodeGroup(clientSet kubernetes.Interface, ng *api.NodeGroup) error {
 	if err := acm.Save(); err != nil {
 		return errors.Wrap(err, "updating auth ConfigMap after removing role")
 	}
-	logger.Debug("updated auth ConfigMap for %s", ng.Name)
+	logrus.Debugf("updated auth ConfigMap for %s", ng.Name)
 	return nil
 }

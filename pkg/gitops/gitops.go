@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -30,9 +30,9 @@ func Setup(k8sRestConfig *rest.Config, k8sClientSet kubeclient.Interface, cfg *a
 	fluxIsInstalled, err := installer.IsFluxInstalled()
 	if err != nil {
 		// Continue with installation
-		logger.Warning(err.Error())
+		logrus.Warningf(err.Error())
 	} else if fluxIsInstalled {
-		logger.Warning("found existing flux deployment in namespace %q. Skipping installation",
+		logrus.Warningf("found existing flux deployment in namespace %q. Skipping installation",
 			cfg.Git.Operator.Namespace)
 		return nil
 	}
@@ -46,14 +46,14 @@ func Setup(k8sRestConfig *rest.Config, k8sClientSet kubeclient.Interface, cfg *a
 		return err
 	}
 
-	logger.Info(userInstructions)
+	logrus.Infof(userInstructions)
 	return nil
 }
 
 // InstallProfile installs the bootstrap profile in the user's repo if it's specified in the cluster config
 func InstallProfile(cfg *api.ClusterConfig) error {
 	if !cfg.HasBootstrapProfile() {
-		logger.Debug("no bootstrap profiles configure. Skipping...")
+		logrus.Debugf("no bootstrap profiles configure. Skipping...")
 		return nil
 	}
 
@@ -92,7 +92,7 @@ func DeleteKey(cfg *api.ClusterConfig) error {
 	ctx := context.Background()
 	deployKeyClient, err := deploykey.GetDeployKeyClient(ctx, cfg.Git.Repo.URL)
 	if err != nil {
-		logger.Warning(
+		logrus.Warningf(
 			"could not find git provider implementation for url %q: %q. Skipping deletion of authorized SSH key",
 			cfg.Git.Repo.URL,
 			err.Error(),
@@ -101,7 +101,7 @@ func DeleteKey(cfg *api.ClusterConfig) error {
 	}
 
 	clusterKeyTitle := flux.KeyTitle(*cfg.Metadata)
-	logger.Info("deleting SSH key %q from repo %q", clusterKeyTitle, cfg.Git.Repo.URL)
+	logrus.Infof("deleting SSH key %q from repo %q", clusterKeyTitle, cfg.Git.Repo.URL)
 
 	key, err := deployKeyClient.Get(ctx, clusterKeyTitle)
 	if err != nil {

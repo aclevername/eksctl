@@ -3,9 +3,10 @@ package cluster
 import (
 	"fmt"
 
+	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/printers"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils"
@@ -21,7 +22,7 @@ func upgrade(cfg *api.ClusterConfig, ctl *eks.ClusterProvider, dryRun bool) (boo
 	}
 
 	printer := printers.NewJSONPrinter()
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return false, err
 	}
 
@@ -33,10 +34,10 @@ func upgrade(cfg *api.ClusterConfig, ctl *eks.ClusterProvider, dryRun bool) (boo
 				return false, err
 			}
 			logger.Success("cluster %q control plane has been upgraded to version %q", cfg.Metadata.Name, cfg.Metadata.Version)
-			logger.Info(msgNodeGroupsAndAddons)
+			logrus.Infof(msgNodeGroupsAndAddons)
 		}
 	} else {
-		logger.Info("no cluster version update required")
+		logrus.Infof("no cluster version update required")
 	}
 	return versionUpdateRequired, nil
 }

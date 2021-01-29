@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/weaveworks/eksctl/pkg/ctl/set"
@@ -39,6 +41,25 @@ func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	rootCmd.AddCommand(completion.Command(rootCmd))
 
 	cmdutils.AddResourceCmd(flagGrouping, rootCmd, versionCmd)
+}
+
+func init() {
+	// Log as JSON instead of the default ASCII formatter.
+	//logrus.SetFormatter(&logrus.JSONFormatter{})
+
+	Formatter := new(logrus.TextFormatter)
+	Formatter.TimestampFormat = "02-01-2006 15:04:05"
+	Formatter.FullTimestamp = true
+	Formatter.ForceColors = true
+	Formatter.DisableColors = false
+	logrus.SetFormatter(Formatter)
+	//logrus.SetLevel(logrus.DebugLevel)
+
+	// Can be any io.Writer, see below for File example
+	//logrus.SetOutput(os.Stdout)
+
+	// Only logrus the warning severity or above.
+	//logrus.SetLevel(logrus.WarnLevel)
 }
 
 func main() {

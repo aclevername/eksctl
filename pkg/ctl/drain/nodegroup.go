@@ -3,9 +3,9 @@ package drain
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/actions/nodegroup"
 
-	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -83,7 +83,7 @@ func doDrainNodeGroup(cmd *cmdutils.Cmd, ng *api.NodeGroup, undo, onlyMissing bo
 	stackManager := ctl.NewStackManager(cfg)
 
 	if cmd.ClusterConfigFile != "" {
-		logger.Info("comparing %d nodegroups defined in the given config (%q) against remote state", len(cfg.NodeGroups), cmd.ClusterConfigFile)
+		logrus.Infof("comparing %d nodegroups defined in the given config (%q) against remote state", len(cfg.NodeGroups), cmd.ClusterConfigFile)
 		if onlyMissing {
 			err = ngFilter.SetOnlyRemote(ctl.Provider.EKS(), stackManager, cfg)
 			if err != nil {

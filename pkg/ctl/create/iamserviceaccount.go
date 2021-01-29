@@ -3,9 +3,9 @@ package create
 import (
 	"errors"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/actions/iam"
 
-	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -103,7 +103,7 @@ func doCreateIAMServiceAccount(cmd *cmdutils.Cmd, overrideExistingServiceAccount
 	}
 
 	if !providerExists {
-		logger.Warning("no IAM OIDC provider associated with cluster, try 'eksctl utils associate-iam-oidc-provider --region=%s --cluster=%s'", meta.Region, meta.Name)
+		logrus.Warningf("no IAM OIDC provider associated with cluster, try 'eksctl utils associate-iam-oidc-provider --region=%s --cluster=%s'", meta.Region, meta.Name)
 		return errors.New("unable to create iamserviceaccount(s) without IAM OIDC provider enabled")
 	}
 	stackManager := ctl.NewStackManager(cfg)
@@ -115,12 +115,12 @@ func doCreateIAMServiceAccount(cmd *cmdutils.Cmd, overrideExistingServiceAccount
 	filteredServiceAccounts := saFilter.FilterMatching(cfg.IAM.ServiceAccounts)
 	saFilter.LogInfo(cfg.IAM.ServiceAccounts)
 	if !overrideExistingServiceAccounts {
-		logger.Warning("serviceaccounts that exists in Kubernetes will be excluded, use --override-existing-serviceaccounts to override")
+		logrus.Warningf("serviceaccounts that exists in Kubernetes will be excluded, use --override-existing-serviceaccounts to override")
 	} else {
-		logger.Warning("metadata of serviceaccounts that exist in Kubernetes will be updated, as --override-existing-serviceaccounts was set")
+		logrus.Warningf("metadata of serviceaccounts that exist in Kubernetes will be updated, as --override-existing-serviceaccounts was set")
 	}
 
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return err
 	}
 

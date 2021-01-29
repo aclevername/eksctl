@@ -5,7 +5,7 @@ import (
 	"os"
 
 	awseks "github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -67,7 +67,7 @@ func getAddon(cmd *cmdutils.Cmd, params *getCmdParams) error {
 		return fmt.Errorf("failed to fetch cluster %q version: %v", cmd.ClusterConfig.Metadata.Name, err)
 	}
 
-	logger.Info("Kubernetes version %q in use by cluster %q", *output.Cluster.Version, cmd.ClusterConfig.Metadata.Name)
+	logrus.Infof("Kubernetes version %q in use by cluster %q", *output.Cluster.Version, cmd.ClusterConfig.Metadata.Name)
 	cmd.ClusterConfig.Metadata.Version = *output.Cluster.Version
 
 	addonManager, err := addon.New(cmd.ClusterConfig, clusterProvider, stackManager, *cmd.ClusterConfig.IAM.WithOIDC, nil, nil)
@@ -91,7 +91,7 @@ func getAddon(cmd *cmdutils.Cmd, params *getCmdParams) error {
 	}
 
 	if len(summaries) == 0 {
-		logger.Info("no addons found")
+		logrus.Infof("no addons found")
 		return nil
 	}
 	printer, err := printers.NewPrinter(params.output)
@@ -103,7 +103,7 @@ func getAddon(cmd *cmdutils.Cmd, params *getCmdParams) error {
 		addAddonSummaryTableColumns(printer.(*printers.TablePrinter))
 	}
 
-	logger.Info("to see issues for an addon run `eksctl get addon --name <addon-name> --cluster <cluster-name>`")
+	logrus.Infof("to see issues for an addon run `eksctl get addon --name <addon-name> --cluster <cluster-name>`")
 
 	if err := printer.PrintObjWithKind("addonsummary", summaries, os.Stdout); err != nil {
 		return err

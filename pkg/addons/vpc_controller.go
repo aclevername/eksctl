@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/csr"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/assetutil"
 	"github.com/weaveworks/eksctl/pkg/kubernetes"
@@ -143,7 +143,7 @@ func (v *VPCController) generateCert() error {
 		return errors.Wrap(err, "updating approval")
 	}
 
-	logger.Info("waiting for certificate to be available")
+	logrus.Infof("waiting for certificate to be available")
 
 	cert, err := watchCSRApproval(csrClientSet, csrName, certWaitTimeout)
 	if err != nil {
@@ -179,7 +179,7 @@ func watchCSRApproval(csrClientSet v1beta1.CertificateSigningRequestInterface, c
 				if cert := req.Status.Certificate; cert != nil {
 					return cert, nil
 				}
-				logger.Warning("certificate not yet available (event: %s)", event.Type)
+				logrus.Warningf("certificate not yet available (event: %s)", event.Type)
 			}
 		case <-timer.C:
 			return nil, fmt.Errorf("timed out (after %v) waiting for certificate", timeout)
@@ -381,7 +381,7 @@ func (v *VPCController) applyRawResource(object runtime.Object) error {
 	if err != nil {
 		return err
 	}
-	logger.Info(msg)
+	logrus.Infof(msg)
 	return nil
 }
 

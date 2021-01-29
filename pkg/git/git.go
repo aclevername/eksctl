@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	giturls "github.com/whilp/git-urls"
 
 	"github.com/weaveworks/eksctl/pkg/git/executor"
@@ -142,7 +142,7 @@ func (git Client) Add(files ...string) error {
 func (git Client) Commit(message, user, email string) error {
 	// Note, this used to do runGitCmd(diffCtx, git.dir, "diff", "--cached", "--quiet", "--", fi.opts.gitFluxPath); err == nil {
 	if err := git.runGitCmd("diff", "--cached", "--quiet"); err == nil {
-		logger.Info("Nothing to commit (the repository contained identical files), moving on")
+		logrus.Infof("Nothing to commit (the repository contained identical files), moving on")
 		return nil
 	} else if _, ok := err.(*exec.ExitError); !ok {
 		return err
@@ -202,7 +202,7 @@ func (git Client) DeleteLocalRepo() error {
 }
 
 func (git Client) runGitCmd(args ...string) error {
-	logger.Debug(fmt.Sprintf("running git %v in %s", args, git.dir))
+	logrus.Debugf(fmt.Sprintf("running git %v in %s", args, git.dir))
 	return git.executor.Exec("git", git.dir, args...)
 }
 

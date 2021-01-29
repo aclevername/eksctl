@@ -5,8 +5,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 )
@@ -38,7 +38,7 @@ type GoTemplateProcessor struct {
 // ProcessFile takes a template file and executes the template applying the TemplateParameters
 func (p *GoTemplateProcessor) ProcessFile(file File) (File, error) {
 	if !isGoTemplate(file.Path) {
-		logger.Debug("leaving non-template file unmodified %q", file.Path)
+		logrus.Debugf("leaving non-template file unmodified %q", file.Path)
 		return file, nil
 	}
 

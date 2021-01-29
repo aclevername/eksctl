@@ -3,7 +3,7 @@ package fargate
 import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/utils/retry"
 	"github.com/weaveworks/eksctl/pkg/utils/strings"
@@ -36,7 +36,7 @@ func describeRequest(clusterName string, profileName string) *eks.DescribeFargat
 		ClusterName:        &clusterName,
 		FargateProfileName: &profileName,
 	}
-	logger.Debug("Fargate profile: describe request: sending: %#v", request)
+	logrus.Debugf("Fargate profile: describe request: sending: %#v", request)
 	return request
 }
 

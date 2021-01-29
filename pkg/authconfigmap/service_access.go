@@ -3,8 +3,8 @@ package authconfigmap
 import (
 	"fmt"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/assetutil"
 	"github.com/weaveworks/eksctl/pkg/iam"
 	"github.com/weaveworks/eksctl/pkg/kubernetes"
@@ -109,7 +109,7 @@ func (s *ServiceAccess) applyResource(o runtime.Object, namespace string) error 
 	if err != nil {
 		return errors.Wrap(err, "error applying resource")
 	}
-	logger.Info(msg)
+	logrus.Infof(msg)
 	return nil
 }
 

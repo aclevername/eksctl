@@ -5,11 +5,10 @@ import (
 	"strings"
 
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/sirupsen/logrus"
 	gfn "github.com/weaveworks/goformation/v4/cloudformation"
 	gfnec2 "github.com/weaveworks/goformation/v4/cloudformation/ec2"
 	gfnt "github.com/weaveworks/goformation/v4/cloudformation/types"
-
-	"github.com/kris-nova/logger"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/outputs"
@@ -76,7 +75,7 @@ func (n *NodeGroupResourceSet) AddAllResources() error {
 		} else {
 			n.spec.MinSize = n.spec.DesiredCapacity
 		}
-		logger.Info("--nodes-min=%d was set automatically for nodegroup %s", *n.spec.MinSize, n.spec.Name)
+		logrus.Infof("--nodes-min=%d was set automatically for nodegroup %s", *n.spec.MinSize, n.spec.Name)
 	} else if n.spec.DesiredCapacity != nil && *n.spec.DesiredCapacity < *n.spec.MinSize {
 		return fmt.Errorf("cannot use --nodes-min=%d and --nodes=%d at the same time", *n.spec.MinSize, *n.spec.DesiredCapacity)
 	}
@@ -88,7 +87,7 @@ func (n *NodeGroupResourceSet) AddAllResources() error {
 		} else {
 			n.spec.MaxSize = n.spec.DesiredCapacity
 		}
-		logger.Info("--nodes-max=%d was set automatically for nodegroup %s", *n.spec.MaxSize, n.spec.Name)
+		logrus.Infof("--nodes-max=%d was set automatically for nodegroup %s", *n.spec.MaxSize, n.spec.Name)
 	} else if n.spec.DesiredCapacity != nil && *n.spec.DesiredCapacity > *n.spec.MaxSize {
 		return fmt.Errorf("cannot use --nodes-max=%d and --nodes=%d at the same time", *n.spec.MaxSize, *n.spec.DesiredCapacity)
 	} else if *n.spec.MaxSize < *n.spec.MinSize {

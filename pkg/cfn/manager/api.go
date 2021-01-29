@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/version"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
@@ -125,7 +125,7 @@ func (c *StackCollection) DoCreateStackRequest(i *Stack, templateData TemplateDa
 		input.Parameters = append(input.Parameters, p)
 	}
 
-	logger.Debug("CreateStackInput = %#v", input)
+	logrus.Debugf("CreateStackInput = %#v", input)
 	s, err := c.provider.CloudFormation().CreateStack(input)
 	if err != nil {
 		return errors.Wrapf(err, "creating CloudFormation stack %q", *i.StackName)
@@ -149,7 +149,7 @@ func (c *StackCollection) CreateStack(name string, stack builder.ResourceSet, ta
 		return err
 	}
 
-	logger.Info("deploying stack %q", name)
+	logrus.Infof("deploying stack %q", name)
 
 	go c.waitUntilStackIsCreated(i, stack, errs)
 
@@ -158,7 +158,7 @@ func (c *StackCollection) CreateStack(name string, stack builder.ResourceSet, ta
 
 // UpdateStack will update a CloudFormation stack by creating and executing a ChangeSet
 func (c *StackCollection) UpdateStack(stackName, changeSetName, description string, templateData TemplateData, parameters map[string]string) error {
-	logger.Info(description)
+	logrus.Infof(description)
 	i := &Stack{StackName: &stackName}
 	// Read existing tags
 	s, err := c.DescribeStack(i)
@@ -179,9 +179,9 @@ func (c *StackCollection) UpdateStack(stackName, changeSetName, description stri
 	if err != nil {
 		return err
 	}
-	logger.Debug("changes = %#v", changeSet.Changes)
+	logrus.Debugf("changes = %#v", changeSet.Changes)
 	if err := c.doExecuteChangeSet(stackName, changeSetName); err != nil {
-		logger.Warning("error executing Cloudformation changeSet %s in stack %s. Check the Cloudformation console for further details", changeSetName, stackName)
+		logrus.Warningf("error executing Cloudformation changeSet %s in stack %s. Check the Cloudformation console for further details", changeSetName, stackName)
 		return err
 	}
 	return c.doWaitUntilStackIsUpdated(i)
@@ -377,11 +377,11 @@ func (c *StackCollection) DeleteStackByName(name string) (*Stack, error) {
 		err = errors.Wrapf(err, "not able to get stack %q for deletion", name)
 		stacks, newErr := c.ListStacksMatching(fmt.Sprintf("^%s$", name), cloudformation.StackStatusDeleteComplete)
 		if newErr != nil {
-			logger.Critical("not able double-check if stack was already deleted: %s", newErr.Error())
+			logrus.Errorf("not able double-check if stack was already deleted: %s", newErr.Error())
 		}
 		if count := len(stacks); count > 0 {
-			logger.Debug("%d deleted stacks found {%v}", count, stacks)
-			logger.Info("stack %q was already deleted", name)
+			logrus.Debugf("%d deleted stacks found {%v}", count, stacks)
+			logrus.Infof("stack %q was already deleted", name)
 			return nil, nil
 		}
 		return nil, err
@@ -398,7 +398,7 @@ func (c *StackCollection) DeleteStackByNameSync(name string) error {
 		return err
 	}
 
-	logger.Info("waiting for stack %q to get deleted", *stack.StackName)
+	logrus.Infof("waiting for stack %q to get deleted", *stack.StackName)
 
 	return c.doWaitUntilStackIsDeleted(stack)
 }
@@ -418,7 +418,7 @@ func (c *StackCollection) DeleteStackBySpec(s *Stack) (*Stack, error) {
 			if _, err := c.provider.CloudFormation().DeleteStack(input); err != nil {
 				return nil, errors.Wrapf(err, "not able to delete stack %q", *s.StackName)
 			}
-			logger.Info("will delete stack %q", *s.StackName)
+			logrus.Infof("will delete stack %q", *s.StackName)
 			return s, nil
 		}
 	}
@@ -448,7 +448,7 @@ func (c *StackCollection) DeleteStackBySpecSync(s *Stack, errs chan error) error
 		return err
 	}
 
-	logger.Info("waiting for stack %q to get deleted", *i.StackName)
+	logrus.Infof("waiting for stack %q to get deleted", *i.StackName)
 
 	go c.waitUntilStackIsDeleted(i, errs)
 
@@ -470,7 +470,7 @@ func (c *StackCollection) DescribeStacks() ([]*Stack, error) {
 		return nil, errors.Wrapf(err, "describing CloudFormation stacks for %q", c.spec.Metadata.Name)
 	}
 	if len(stacks) == 0 {
-		logger.Debug("No stacks found for %s", c.spec.Metadata.Name)
+		logrus.Debugf("No stacks found for %s", c.spec.Metadata.Name)
 	}
 	return stacks, nil
 }
@@ -581,12 +581,12 @@ func (c *StackCollection) doCreateChangeSetRequest(i *Stack, changeSetName strin
 		input.Parameters = append(input.Parameters, p)
 	}
 
-	logger.Debug("creating changeSet, input = %#v", input)
+	logrus.Debugf("creating changeSet, input = %#v", input)
 	s, err := c.provider.CloudFormation().CreateChangeSet(input)
 	if err != nil {
 		return errors.Wrapf(err, "creating ChangeSet %q for stack %q", changeSetName, *i.StackName)
 	}
-	logger.Debug("changeSet = %#v", s)
+	logrus.Debugf("changeSet = %#v", s)
 	return nil
 }
 
@@ -596,7 +596,7 @@ func (c *StackCollection) doExecuteChangeSet(stackName string, changeSetName str
 		StackName:     &stackName,
 	}
 
-	logger.Debug("executing changeSet, input = %#v", input)
+	logrus.Debugf("executing changeSet, input = %#v", input)
 
 	if _, err := c.provider.CloudFormation().ExecuteChangeSet(input); err != nil {
 		return errors.Wrapf(err, "executing CloudFormation ChangeSet %q for stack %q", changeSetName, stackName)

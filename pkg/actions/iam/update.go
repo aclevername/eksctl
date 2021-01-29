@@ -3,11 +3,10 @@ package iam
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils"
 
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
-
-	"github.com/kris-nova/logger"
 
 	"github.com/weaveworks/eksctl/pkg/utils/tasks"
 
@@ -31,7 +30,7 @@ func (a *Manager) UpdateIAMServiceAccounts(iamServiceAccounts []*api.ClusterIAMS
 		stackName := makeIAMServiceAccountStackName(a.clusterName, iamServiceAccount.Namespace, iamServiceAccount.Name)
 
 		if _, ok := existingIAMStacksMap[stackName]; !ok {
-			logger.Info("cannot update IAMServiceAccount %s/%s as it does not exist", iamServiceAccount.Namespace, iamServiceAccount.Name)
+			logrus.Infof("cannot update IAMServiceAccount %s/%s as it does not exist", iamServiceAccount.Namespace, iamServiceAccount.Name)
 			nonExistingSAs = append(nonExistingSAs, fmt.Sprintf("%s/%s", iamServiceAccount.Namespace, iamServiceAccount.Name))
 			continue
 		}
@@ -44,7 +43,7 @@ func (a *Manager) UpdateIAMServiceAccounts(iamServiceAccounts []*api.ClusterIAMS
 		updateTasks.Append(taskTree)
 	}
 	if len(nonExistingSAs) > 0 {
-		logger.Info("the following IAMServiceAccounts will not be updated as they do not exist: %v", strings.Join(nonExistingSAs, ", "))
+		logrus.Infof("the following IAMServiceAccounts will not be updated as they do not exist: %v", strings.Join(nonExistingSAs, ", "))
 	}
 
 	defer cmdutils.LogPlanModeWarning(plan && len(iamServiceAccounts) > 0)

@@ -2,9 +2,9 @@ package create
 
 import (
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/kris-nova/logger"
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
@@ -139,7 +139,7 @@ func doCreateIAMIdentityMapping(cmd *cmdutils.Cmd, options iamIdentityMappingOpt
 			arn := identity.ARN()
 
 			if createdArn == arn {
-				logger.Warning("found existing mappings with same arn %q (which will be shadowed by your new mapping)", createdArn)
+				logrus.Warningf("found existing mappings with same arn %q (which will be shadowed by your new mapping)", createdArn)
 				break
 			}
 		}

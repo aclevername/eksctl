@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
@@ -26,7 +26,7 @@ func (c *ClusterProvider) ValidateClusterForCompatibility(cfg *api.ClusterConfig
 	err = outputs.Collect(*cluster,
 		map[string]outputs.Collector{
 			outputs.ClusterSharedNodeSecurityGroup: func(v string) error {
-				logger.Debug("ClusterSharedNodeSecurityGroup = %s", v)
+				logrus.Debugf("ClusterSharedNodeSecurityGroup = %s", v)
 				return nil
 			},
 		},
@@ -34,7 +34,7 @@ func (c *ClusterProvider) ValidateClusterForCompatibility(cfg *api.ClusterConfig
 	)
 
 	if err != nil {
-		logger.Debug("err = %s", err.Error())
+		logrus.Debugf("err = %s", err.Error())
 		return fmt.Errorf(
 			"shared node security group missing, to fix this run 'eksctl update cluster --name=%s --region=%s'",
 			cfg.Metadata.Name,
@@ -91,9 +91,9 @@ func isNodeGroupCompatible(name string, info manager.StackInfo) (bool, error) {
 		// however users are unaware of that API v1alpha3 was broken this way, so we need this warning;
 		// as `outputs.NodeGroupFeatureLocalSecurityGroup` was added in 0.1.20/v1alpha4, it can be used to
 		// infer use of v1alpha3 and thereby warn the user that their cluster may had been misconfigured
-		logger.Warning("looks like nodegroup %q was created using v1alpha3 API and is not using shared SG", name)
-		logger.Warning("if you didn't disable shared SG and expect that pods running on %q should have access to all other pods", name)
-		logger.Warning("then you should replace nodegroup %q or patch the configuration", name)
+		logrus.Warningf("looks like nodegroup %q was created using v1alpha3 API and is not using shared SG", name)
+		logrus.Warningf("if you didn't disable shared SG and expect that pods running on %q should have access to all other pods", name)
+		logrus.Warningf("then you should replace nodegroup %q or patch the configuration", name)
 	}
 
 	return true, nil
@@ -110,7 +110,7 @@ func (c *ClusterProvider) ValidateExistingNodeGroupsForCompatibility(cfg *api.Cl
 		return nil
 	}
 
-	logger.Info("checking security group configuration for all nodegroups")
+	logrus.Infof("checking security group configuration for all nodegroups")
 	incompatibleNodeGroups := []string{}
 	for ng, info := range infoByNodeGroup {
 		if stackManager.StackStatusIsNotTransitional(info.Stack) {
@@ -119,9 +119,9 @@ func (c *ClusterProvider) ValidateExistingNodeGroupsForCompatibility(cfg *api.Cl
 				return err
 			}
 			if isCompatible {
-				logger.Debug("nodegroup %q is compatible", ng)
+				logrus.Debugf("nodegroup %q is compatible", ng)
 			} else {
-				logger.Debug("nodegroup %q is incompatible", ng)
+				logrus.Debugf("nodegroup %q is incompatible", ng)
 				incompatibleNodeGroups = append(incompatibleNodeGroups, ng)
 			}
 		}
@@ -129,15 +129,15 @@ func (c *ClusterProvider) ValidateExistingNodeGroupsForCompatibility(cfg *api.Cl
 
 	numIncompatibleNodeGroups := len(incompatibleNodeGroups)
 	if numIncompatibleNodeGroups == 0 {
-		logger.Info("all nodegroups have up-to-date configuration")
+		logrus.Infof("all nodegroups have up-to-date configuration")
 		return nil
 	}
 
-	logger.Critical("found %d nodegroup(s) (%s) without shared security group, cluster networking maybe be broken",
+	logrus.Errorf("found %d nodegroup(s) (%s) without shared security group, cluster networking maybe be broken",
 		numIncompatibleNodeGroups, strings.Join(incompatibleNodeGroups, ", "))
-	logger.Critical("it's recommended to create new nodegroups, then delete old ones")
+	logrus.Errorf("it's recommended to create new nodegroups, then delete old ones")
 	if cfg.VPC.SharedNodeSecurityGroup != "" {
-		logger.Critical("as a temporary fix, you can patch the configuration and add each of these nodegroup(s) to %q",
+		logrus.Errorf("as a temporary fix, you can patch the configuration and add each of these nodegroup(s) to %q",
 			cfg.VPC.SharedNodeSecurityGroup)
 	}
 

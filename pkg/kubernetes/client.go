@@ -6,8 +6,8 @@ import (
 
 	"github.com/blang/semver"
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -220,7 +220,7 @@ func (c *RawClient) createOrReplaceObject(object runtime.RawExtension, plan bool
 	if err != nil {
 		return err
 	}
-	logger.Info(status)
+	logrus.Infof(status)
 	return nil
 }
 
@@ -249,7 +249,7 @@ func (c *RawClient) deleteObject(object runtime.RawExtension) error {
 		return err
 	}
 	if status != "" {
-		logger.Info(status)
+		logrus.Infof(status)
 	}
 	return nil
 }
@@ -348,7 +348,7 @@ func (r *RawResource) CreateOrReplace(plan bool) (string, error) {
 // TODO: it needs more testing and the issue with strategic patch has to be
 // understood before we decide whether to use it or not
 func (r *RawResource) CreatePatchOrReplace() error {
-	msg := func(verb string) { logger.Info("%s %q", verb, r) }
+	msg := func(verb string) { logrus.Infof("%s %q", verb, r) }
 
 	oldObj, exists, err := r.Get()
 	if err != nil {
@@ -393,7 +393,7 @@ func (r *RawResource) CreatePatchOrReplace() error {
 
 	patch, err := jsonpatch.CreateMergePatch(oldData, newData)
 	if err != nil {
-		logger.Warning("could create patch for %q: %v", r, err)
+		logrus.Warningf("could create patch for %q: %v", r, err)
 		_, err := r.Helper.Replace(r.Info.Namespace, r.Info.Name, false, r.Info.Object)
 		if err != nil {
 			return err
@@ -401,9 +401,9 @@ func (r *RawResource) CreatePatchOrReplace() error {
 		msg("replaced")
 		return nil
 	}
-	logger.Debug("oldData[%q] = %s", r, oldData)
-	logger.Debug("newData[%q] = %s", r, newData)
-	logger.Debug("patch[%q] = %s", r, patch)
+	logrus.Debugf("oldData[%q] = %s", r, oldData)
+	logrus.Debugf("newData[%q] = %s", r, newData)
+	logrus.Debugf("patch[%q] = %s", r, patch)
 	_, err = r.Helper.Patch(r.Info.Namespace, r.Info.Name, types.MergePatchType, patch, nil)
 	if err != nil {
 		return err

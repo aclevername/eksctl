@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/blang/semver"
-	"github.com/kris-nova/logger"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
 	"github.com/weaveworks/eksctl/pkg/managed"
 	"github.com/weaveworks/eksctl/pkg/utils/waiters"
@@ -93,10 +93,10 @@ func (m *Manager) upgradeAndWait(nodeGroupName, version, launchTemplateVersion s
 	}
 
 	if upgradeResponse != nil {
-		logger.Debug("upgrade response for %q: %s", nodeGroupName, upgradeResponse.String())
+		logrus.Debugf("upgrade response for %q: %s", nodeGroupName, upgradeResponse.String())
 	}
 
-	logger.Info("upgrade of nodegroup %q in progress", nodeGroupName)
+	logrus.Infof("upgrade of nodegroup %q in progress", nodeGroupName)
 
 	newRequest := func() *request.Request {
 		input := &eks.DescribeNodegroupInput{
@@ -121,6 +121,6 @@ func (m *Manager) upgradeAndWait(nodeGroupName, version, launchTemplateVersion s
 	if err != nil {
 		return err
 	}
-	logger.Info("nodegroup successfully upgraded")
+	logrus.Infof("nodegroup successfully upgraded")
 	return nil
 }

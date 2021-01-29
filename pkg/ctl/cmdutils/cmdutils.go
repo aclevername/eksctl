@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -27,7 +29,7 @@ func NewVerbCmd(use, short, long string) *cobra.Command {
 		Long:  long,
 		Run: func(c *cobra.Command, _ []string) {
 			if err := c.Help(); err != nil {
-				logger.Debug("ignoring error %q", err.Error())
+				logrus.Debugf("ignoring error %q", err.Error())
 			}
 		},
 		FParseErrWhitelist: cobra.FParseErrWhitelist{
@@ -48,13 +50,13 @@ func AddPreRun(cmd *cobra.Command, newFn func(cmd *cobra.Command, args []string)
 	}
 }
 
-// LogIntendedAction calls logger.Info with appropriate prefix
+// LogIntendedAction calls logrus.Infof with appropriate prefix
 func LogIntendedAction(plan bool, msgFmt string, args ...interface{}) {
 	prefix := "will "
 	if plan {
 		prefix = "(plan) would "
 	}
-	logger.Info(prefix+msgFmt, args...)
+	logrus.Infof(prefix+msgFmt, args...)
 }
 
 // LogCompletedAction calls logger.Success with appropriate prefix
@@ -69,15 +71,15 @@ func LogCompletedAction(plan bool, msgFmt string, args ...interface{}) {
 // LogPlanModeWarning will log a message to inform user that they are in plan-mode
 func LogPlanModeWarning(plan bool) {
 	if plan {
-		logger.Warning("no changes were applied, run again with '--approve' to apply the changes")
+		logrus.Warningf("no changes were applied, run again with '--approve' to apply the changes")
 	}
 }
 
 // LogRegionAndVersionInfo will log the selected region and build version
 func LogRegionAndVersionInfo(meta *api.ClusterMeta) {
 	if meta != nil {
-		logger.Info("eksctl version %s", version.GetVersion())
-		logger.Info("using region %s", meta.Region)
+		logrus.Infof("eksctl version %s", version.GetVersion())
+		logrus.Infof("using region %s", meta.Region)
 	}
 }
 
@@ -94,7 +96,7 @@ func AddApproveFlag(fs *pflag.FlagSet, cmd *Cmd) {
 // GetNameArg tests to ensure there is only 1 name argument
 func GetNameArg(args []string) string {
 	if len(args) > 1 {
-		logger.Critical("only one argument is allowed to be used as a name")
+		logrus.Errorf("only one argument is allowed to be used as a name")
 		os.Exit(1)
 	}
 	if len(args) == 1 {
@@ -111,7 +113,7 @@ func AddCommonFlagsForAWS(group *NamedFlagSetGroup, p *api.ProviderConfig, addCf
 		fs.DurationVar(&p.WaitTimeout, "aws-api-timeout", api.DefaultWaitTimeout, "")
 		// TODO deprecate in 0.2.0
 		if err := fs.MarkHidden("aws-api-timeout"); err != nil {
-			logger.Debug("ignoring error %q", err.Error())
+			logrus.Debugf("ignoring error %q", err.Error())
 		}
 		if addCfnOptions {
 			fs.StringVar(&p.CloudFormationRoleARN, "cfn-role-arn", "", "IAM role used by CloudFormation to call AWS API on your behalf")

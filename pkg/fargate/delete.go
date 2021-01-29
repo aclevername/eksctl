@@ -6,8 +6,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // DeleteProfile drains and delete the Fargate profile with the provided name.
@@ -16,7 +16,7 @@ func (c *Client) DeleteProfile(name string, waitForDeletion bool) error {
 		return errors.New("invalid Fargate profile name: empty")
 	}
 	out, err := c.api.DeleteFargateProfile(deleteRequest(c.clusterName, name))
-	logger.Debug("Fargate profile: delete request: received: %#v", out)
+	logrus.Debugf("Fargate profile: delete request: received: %#v", out)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete Fargate profile %q", name)
 	}
@@ -47,7 +47,7 @@ func deleteRequest(clusterName string, profileName string) *eks.DeleteFargatePro
 		ClusterName:        &clusterName,
 		FargateProfileName: &profileName,
 	}
-	logger.Debug("Fargate profile: delete request: sending: %#v", request)
+	logrus.Debugf("Fargate profile: delete request: sending: %#v", request)
 	return request
 }
 

@@ -3,9 +3,9 @@ package nodegroup
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/eks"
 
-	"github.com/kris-nova/logger"
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils"
 	"github.com/weaveworks/eksctl/pkg/drain"
 )
@@ -17,7 +17,7 @@ func (m *Manager) Drain(nodeGroups []eks.KubeNodeGroup, plan bool, maxGracePerio
 		for _, n := range nodeGroups {
 			nodeGroupDrainer := drain.NewNodeGroupDrainer(m.clientSet, n, m.ctl.Provider.WaitTimeout(), maxGracePeriod, false)
 			if err := nodeGroupDrainer.Drain(); err != nil {
-				logger.Warning("error occurred during drain, to skip drain use '--drain=false' flag")
+				logrus.Warningf("error occurred during drain, to skip drain use '--drain=false' flag")
 				return err
 			}
 		}

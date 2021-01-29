@@ -2,7 +2,7 @@ package ssh
 
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/ssh/client"
 	"github.com/weaveworks/eksctl/pkg/utils/file"
@@ -32,7 +32,7 @@ func LoadKey(sshConfig *api.NodeGroupSSH, clusterName, nodeGroupName string, ec2
 		if err := client.CheckKeyExistsInEC2(*sshConfig.PublicKeyName, ec2API); err != nil {
 			return "", err
 		}
-		logger.Info("using EC2 key pair %q", *sshConfig.PublicKeyName)
+		logrus.Infof("using EC2 key pair %q", *sshConfig.PublicKeyName)
 		return *sshConfig.PublicKeyName, nil
 
 	// Local ssh key file
@@ -49,7 +49,7 @@ func LoadKey(sshConfig *api.NodeGroupSSH, clusterName, nodeGroupName string, ec2
 		if err != nil {
 			return "", err
 		}
-		logger.Info("using EC2 key pair %q", sshConfig.PublicKeyName)
+		logrus.Infof("using EC2 key pair %q", sshConfig.PublicKeyName)
 		return *sshConfig.PublicKeyPath, nil
 	}
 

@@ -7,12 +7,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/utils/waiters"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 
 	awseks "github.com/aws/aws-sdk-go/service/eks"
@@ -54,7 +55,7 @@ func (c *ClusterProvider) RefreshClusterStatus(spec *api.ClusterConfig) error {
 	if err != nil {
 		return err
 	}
-	logger.Debug("cluster = %#v", cluster)
+	logrus.Debugf("cluster = %#v", cluster)
 
 	if spec.Status == nil {
 		spec.Status = &api.ClusterStatus{}
@@ -107,7 +108,7 @@ func ClusterSupportsManagedNodes(cluster *awseks.Cluster) (bool, error) {
 	}
 
 	if cluster.PlatformVersion == nil {
-		logger.Warning("could not find cluster's platform version")
+		logrus.Warningf("could not find cluster's platform version")
 		return false, nil
 	}
 	version, err := PlatformVersion(*cluster.PlatformVersion)
@@ -145,7 +146,7 @@ func ClusterSupportsFargate(cluster *awseks.Cluster) (bool, error) {
 	}
 
 	if cluster.PlatformVersion == nil {
-		logger.Warning("could not find cluster's platform version")
+		logrus.Warningf("could not find cluster's platform version")
 		return false, nil
 	}
 	version, err := PlatformVersion(*cluster.PlatformVersion)
@@ -322,7 +323,7 @@ func (c *ClusterProvider) ListClusters(chunkSize int, listAllRegions bool) ([]*a
 			}
 			newClusters, err := New(spec, nil).listClusters(int64(chunkSize))
 			if err != nil {
-				logger.Critical("error listing clusters in %q region: %s", region, err.Error())
+				logrus.Errorf("error listing clusters in %q region: %s", region, err.Error())
 			}
 
 			clusters = append(clusters, newClusters...)
@@ -355,7 +356,7 @@ func (c *ClusterProvider) listClusters(chunkSize int64) ([]*api.ClusterConfig, e
 			managed := eksctlCreatedFalse
 			if err != nil {
 				managed = eksctlCreatedUnknown
-				logger.Warning("error fetching stacks for cluster %s: %v", clusterName, err)
+				logrus.Warningf("error fetching stacks for cluster %s: %v", clusterName, err)
 			} else if hasClusterStack {
 				managed = eksctlCreatedTrue
 			}
@@ -390,7 +391,7 @@ func (c *ClusterProvider) GetCluster(clusterName string) (*awseks.Cluster, error
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to describe control plane %q", clusterName)
 	}
-	logger.Debug("cluster = %#v", output)
+	logrus.Debugf("cluster = %#v", output)
 
 	if *output.Cluster.Status == awseks.ClusterStatusActive {
 		if logger.Level >= 4 {
@@ -400,7 +401,7 @@ func (c *ClusterProvider) GetCluster(clusterName string) (*awseks.Cluster, error
 				return nil, errors.Wrapf(err, "listing CloudFormation stack for %q", clusterName)
 			}
 			for _, s := range stacks {
-				logger.Debug("stack = %#v", *s)
+				logrus.Debugf("stack = %#v", *s)
 			}
 		}
 	}
@@ -430,7 +431,7 @@ func (c *ClusterProvider) WaitForControlPlane(meta *api.ClusterMeta, clientSet *
 		if err == nil {
 			return true, nil
 		}
-		logger.Debug("control plane not ready yet – %s", err.Error())
+		logrus.Debugf("control plane not ready yet – %s", err.Error())
 		return false, nil
 	}
 

@@ -1,7 +1,7 @@
 package completion
 
 import (
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -78,7 +78,7 @@ Note: the path might be different depending on your system settings.
 		Short: "Generates shell completion scripts for bash, zsh or fish",
 		Run: func(c *cobra.Command, _ []string) {
 			if err := c.Help(); err != nil {
-				logger.Debug("ignoring error %q", err.Error())
+				logrus.Debugf("ignoring error %q", err.Error())
 			}
 		},
 	}

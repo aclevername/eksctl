@@ -7,12 +7,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/aws/aws-sdk-go/aws"
 
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/builder"
@@ -34,25 +34,25 @@ func (a *Manager) Create(addon *api.Addon) error {
 
 	if addon.Force {
 		createAddonInput.ResolveConflicts = aws.String("overwrite")
-		logger.Debug("setting resolve conflicts to overwrite")
+		logrus.Debugf("setting resolve conflicts to overwrite")
 	}
 
-	logger.Debug("addon: %v", addon)
+	logrus.Debugf("addon: %v", addon)
 	namespace, serviceAccount := a.getKnownServiceAccountLocation(addon)
 
 	if a.withOIDC {
 		if addon.ServiceAccountRoleARN != "" {
-			logger.Info("using provided ServiceAccountRoleARN %q", addon.ServiceAccountRoleARN)
+			logrus.Infof("using provided ServiceAccountRoleARN %q", addon.ServiceAccountRoleARN)
 			createAddonInput.ServiceAccountRoleArn = &addon.ServiceAccountRoleARN
 		} else if addon.AttachPolicyARNs != nil && len(addon.AttachPolicyARNs) != 0 {
-			logger.Info("creating role using provided policies ARNs")
+			logrus.Infof("creating role using provided policies ARNs")
 			role, err := a.createRoleUsingAttachPolicyARNs(addon, namespace, serviceAccount)
 			if err != nil {
 				return err
 			}
 			createAddonInput.ServiceAccountRoleArn = &role
 		} else if addon.AttachPolicy != nil {
-			logger.Info("creating role using provided policies")
+			logrus.Infof("creating role using provided policies")
 			role, err := a.createRoleUsingAttachPolicy(addon, namespace, serviceAccount)
 			if err != nil {
 				return err
@@ -61,7 +61,7 @@ func (a *Manager) Create(addon *api.Addon) error {
 		} else {
 			policies := a.getRecommendedPolicies(addon)
 			if len(policies) != 0 {
-				logger.Info("creating role using recommended policies")
+				logrus.Infof("creating role using recommended policies")
 				addon.AttachPolicyARNs = policies
 				role, err := a.createRoleUsingAttachPolicyARNs(addon, namespace, serviceAccount)
 				if err != nil {
@@ -69,7 +69,7 @@ func (a *Manager) Create(addon *api.Addon) error {
 				}
 				createAddonInput.ServiceAccountRoleArn = &role
 			} else {
-				logger.Info("no recommended policies found, proceeding without any IAM")
+				logrus.Infof("no recommended policies found, proceeding without any IAM")
 			}
 		}
 	} else {
@@ -78,12 +78,12 @@ func (a *Manager) Create(addon *api.Addon) error {
 			(addon.AttachPolicyARNs != nil && len(addon.AttachPolicyARNs) != 0) ||
 			addon.AttachPolicy != nil ||
 			len(a.getRecommendedPolicies(addon)) != 0 {
-			logger.Warning("OIDC is disabled but policies are required/specified for this addon. Users are responsible for attaching the policies to all nodegroup roles")
+			logrus.Warningf("OIDC is disabled but policies are required/specified for this addon. Users are responsible for attaching the policies to all nodegroup roles")
 		}
 	}
 
 	if addon.CanonicalName() == vpcCNIName {
-		logger.Debug("patching AWS node")
+		logrus.Debugf("patching AWS node")
 		err := a.patchAWSNodeSA()
 		if err != nil {
 			return err
@@ -95,17 +95,17 @@ func (a *Manager) Create(addon *api.Addon) error {
 		}
 	}
 
-	logger.Info("creating addon")
+	logrus.Infof("creating addon")
 	output, err := a.clusterProvider.Provider.EKS().CreateAddon(createAddonInput)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create addon %q", addon.Name)
 	}
 
 	if output != nil {
-		logger.Debug("EKS Create Addon output: %s", output.String())
+		logrus.Debugf("EKS Create Addon output: %s", output.String())
 	}
 
-	logger.Info("successfully created addon")
+	logrus.Infof("successfully created addon")
 	return nil
 }
 
@@ -114,7 +114,7 @@ func (a *Manager) patchAWSNodeSA() error {
 	sa, err := serviceaccounts.Get(context.TODO(), "aws-node", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			logger.Debug("could not find aws-node SA, skipping patching")
+			logrus.Debugf("could not find aws-node SA, skipping patching")
 			return nil
 		}
 		return err
@@ -126,7 +126,7 @@ func (a *Manager) patchAWSNodeSA() error {
 		}
 	}
 	if managerIndex == -1 {
-		logger.Debug("no 'eksctl' managed field found")
+		logrus.Debugf("no 'eksctl' managed field found")
 		return nil
 	}
 
@@ -143,7 +143,7 @@ func (a *Manager) patchAWSNodeDaemonSet() error {
 	sa, err := daemonsets.Get(context.TODO(), "aws-node", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			logger.Debug("could not find aws-node daemon set, skipping patching")
+			logrus.Debugf("could not find aws-node daemon set, skipping patching")
 			return nil
 		}
 		return err
@@ -155,7 +155,7 @@ func (a *Manager) patchAWSNodeDaemonSet() error {
 		}
 	}
 	if managerIndex == -1 {
-		logger.Debug("no 'eksctl' managed field found")
+		logrus.Debugf("no 'eksctl' managed field found")
 		return nil
 	}
 
@@ -180,7 +180,7 @@ func (a *Manager) getKnownServiceAccountLocation(addon *api.Addon) (string, stri
 	// API isn't case sensitive
 	switch addon.CanonicalName() {
 	case vpcCNIName:
-		logger.Debug("found known service account location %s/%s", api.AWSNodeMeta.Namespace, api.AWSNodeMeta.Name)
+		logrus.Debugf("found known service account location %s/%s", api.AWSNodeMeta.Namespace, api.AWSNodeMeta.Name)
 		return api.AWSNodeMeta.Namespace, api.AWSNodeMeta.Name
 	default:
 		return "", ""

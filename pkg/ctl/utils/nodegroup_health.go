@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
@@ -74,12 +74,12 @@ func getNodeGroupHealth(cmd *cmdutils.Cmd, nodeGroupName string) error {
 	}
 
 	if len(healthIssues) == 0 {
-		logger.Info("No health issues found. Node group %q is active", nodeGroupName)
+		logrus.Infof("No health issues found. Node group %q is active", nodeGroupName)
 		return nil
 	}
 
 	for _, issue := range healthIssues {
-		logger.Warning(issue.Message)
+		logrus.Warningf(issue.Message)
 	}
 
 	return nil

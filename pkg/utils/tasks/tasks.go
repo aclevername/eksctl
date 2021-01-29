@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 )
 
 // Task is a common interface for the stack manager tasks
@@ -87,7 +87,7 @@ func (t *TaskTree) Describe() string {
 // are completed
 func (t *TaskTree) Do(allErrs chan error) error {
 	if t.Len() == 0 || t.PlanMode {
-		logger.Debug("no actual tasks")
+		logrus.Debugf("no actual tasks")
 		close(allErrs)
 		return nil
 	}
@@ -114,7 +114,7 @@ func (t *TaskTree) Do(allErrs chan error) error {
 // in a slice
 func (t *TaskTree) DoAllSync() []error {
 	if t.Len() == 0 || t.PlanMode {
-		logger.Debug("no actual tasks")
+		logrus.Debugf("no actual tasks")
 		return nil
 	}
 
@@ -135,7 +135,7 @@ func (t *TaskTree) DoAllSync() []error {
 
 func doSingleTask(allErrs chan error, task Task) bool {
 	desc := task.Describe()
-	logger.Debug("started task: %s", desc)
+	logrus.Debugf("started task: %s", desc)
 	errs := make(chan error)
 	if err := task.Do(errs); err != nil {
 		allErrs <- err
@@ -145,7 +145,7 @@ func doSingleTask(allErrs chan error, task Task) bool {
 		allErrs <- err
 		return false
 	}
-	logger.Debug("completed task: %s", desc)
+	logrus.Debugf("completed task: %s", desc)
 	return true
 }
 
@@ -156,11 +156,11 @@ func doParallelTasks(allErrs chan error, tasks []Task) {
 		go func(t int) {
 			defer wg.Done()
 			if ok := doSingleTask(allErrs, tasks[t]); !ok {
-				logger.Debug("failed task: %s (will continue until other parallel tasks are completed)", tasks[t].Describe())
+				logrus.Debugf("failed task: %s (will continue until other parallel tasks are completed)", tasks[t].Describe())
 			}
 		}(t)
 	}
-	logger.Debug("waiting for %d parallel tasks to complete", len(tasks))
+	logrus.Debugf("waiting for %d parallel tasks to complete", len(tasks))
 	wg.Wait()
 	close(allErrs)
 }
@@ -168,7 +168,7 @@ func doParallelTasks(allErrs chan error, tasks []Task) {
 func doSequentialTasks(allErrs chan error, tasks []Task) {
 	for t := range tasks {
 		if ok := doSingleTask(allErrs, tasks[t]); !ok {
-			logger.Debug("failed task: %s (will not run other sequential tasks)", tasks[t].Describe())
+			logrus.Debugf("failed task: %s (will not run other sequential tasks)", tasks[t].Describe())
 			break
 		}
 	}

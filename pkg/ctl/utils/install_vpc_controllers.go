@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/weaveworks/eksctl/pkg/eks"
@@ -45,7 +45,7 @@ func doInstallWindowsVPCController(cmd *cmdutils.Cmd) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("using region %s", meta.Region)
+	logrus.Infof("using region %s", meta.Region)
 
 	if err := ctl.CheckAuth(); err != nil {
 		return err

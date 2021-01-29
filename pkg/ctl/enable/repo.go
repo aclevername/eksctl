@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
@@ -81,20 +81,20 @@ func doEnableRepository(cmd *cmdutils.Cmd) error {
 	fluxIsInstalled, err := installer.IsFluxInstalled()
 	if err != nil {
 		// Continue with installation
-		logger.Warning(err.Error())
+		logrus.Warningf(err.Error())
 	} else if fluxIsInstalled {
-		logger.Warning("found existing flux deployment in namespace %q. Skipping installation",
+		logrus.Warningf("found existing flux deployment in namespace %q. Skipping installation",
 			cmd.ClusterConfig.Git.Operator.Namespace)
 		return nil
 	}
 
 	userInstructions, err := installer.Run(context.Background())
 	if err != nil {
-		logger.Critical("unable to set up gitops repo: %s", err.Error())
+		logrus.Errorf("unable to set up gitops repo: %s", err.Error())
 		return err
 	}
 
-	logger.Info(userInstructions)
+	logrus.Infof(userInstructions)
 
 	return nil
 }

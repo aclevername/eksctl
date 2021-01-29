@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/addons"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +29,7 @@ func IsCoreDNSUpToDate(rawClient kubernetes.RawClientInterface, region, controlP
 	kubeDNSDeployment, err := rawClient.ClientSet().AppsV1().Deployments(metav1.NamespaceSystem).Get(context.TODO(), CoreDNS, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
-			logger.Warning("%q was not found", CoreDNS)
+			logrus.Warningf("%q was not found", CoreDNS)
 			return true, nil
 		}
 		return false, errors.Wrapf(err, "getting %q", CoreDNS)
@@ -80,7 +80,7 @@ func UpdateCoreDNS(rawClient kubernetes.RawClientInterface, region, controlPlane
 	kubeDNSSevice, err := rawClient.ClientSet().CoreV1().Services(metav1.NamespaceSystem).Get(context.TODO(), KubeDNS, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
-			logger.Warning("%q service was not found", KubeDNS)
+			logrus.Warningf("%q service was not found", KubeDNS)
 			return false, nil
 		}
 		return false, errors.Wrapf(err, "getting %q service", KubeDNS)
@@ -89,7 +89,7 @@ func UpdateCoreDNS(rawClient kubernetes.RawClientInterface, region, controlPlane
 	kubeDNSDeployment, err := rawClient.ClientSet().AppsV1().Deployments(metav1.NamespaceSystem).Get(context.TODO(), CoreDNS, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
-			logger.Warning("%q was not found", CoreDNS)
+			logrus.Warningf("%q was not found", CoreDNS)
 			return false, nil
 		}
 		return false, errors.Wrapf(err, "getting %q", CoreDNS)
@@ -142,19 +142,19 @@ func UpdateCoreDNS(rawClient kubernetes.RawClientInterface, region, controlPlane
 		if err != nil {
 			return false, err
 		}
-		logger.Info(status)
+		logrus.Infof(status)
 	}
 
 	if plan {
 		if tagMismatch {
-			logger.Critical("(plan) %q is not up-to-date", CoreDNS)
+			logrus.Errorf("(plan) %q is not up-to-date", CoreDNS)
 			return true, nil
 		}
-		logger.Info("(plan) %q is already up-to-date", CoreDNS)
+		logrus.Infof("(plan) %q is already up-to-date", CoreDNS)
 		return false, nil
 	}
 
-	logger.Info("%q is now up-to-date", CoreDNS)
+	logrus.Infof("%q is now up-to-date", CoreDNS)
 	return false, nil
 }
 

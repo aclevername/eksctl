@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/actions/nodegroup"
 
-	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -89,7 +89,7 @@ func doDeleteNodeGroup(cmd *cmdutils.Cmd, ng *api.NodeGroup, updateAuthConfigMap
 	stackManager := ctl.NewStackManager(cfg)
 
 	if cmd.ClusterConfigFile != "" {
-		logger.Info("comparing %d nodegroups defined in the given config (%q) against remote state", len(cfg.NodeGroups), cmd.ClusterConfigFile)
+		logrus.Infof("comparing %d nodegroups defined in the given config (%q) against remote state", len(cfg.NodeGroups), cmd.ClusterConfigFile)
 		if onlyMissing {
 			err = ngFilter.SetOnlyRemote(ctl.Provider.EKS(), stackManager, cfg)
 			if err != nil {
@@ -112,7 +112,7 @@ func doDeleteNodeGroup(cmd *cmdutils.Cmd, ng *api.NodeGroup, updateAuthConfigMap
 			if ng.IAM == nil || ng.IAM.InstanceRoleARN == "" {
 				if err := ctl.GetNodeGroupIAM(stackManager, ng); err != nil {
 					err := fmt.Sprintf("error getting instance role ARN for nodegroup %q: %v", ng.Name, err)
-					logger.Warning("continuing with deletion, error occurred: %s", err)
+					logrus.Warningf("continuing with deletion, error occurred: %s", err)
 				}
 			}
 		}
@@ -139,7 +139,7 @@ func doDeleteNodeGroup(cmd *cmdutils.Cmd, ng *api.NodeGroup, updateAuthConfigMap
 		if !cmd.Plan {
 			for _, ng := range cfg.NodeGroups {
 				if err := authconfigmap.RemoveNodeGroup(clientSet, ng); err != nil {
-					logger.Warning(err.Error())
+					logrus.Warningf(err.Error())
 				}
 			}
 		}

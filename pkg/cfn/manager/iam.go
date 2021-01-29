@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/kris-nova/logger"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/builder"
@@ -23,7 +23,7 @@ func (c *StackCollection) makeIAMServiceAccountStackName(namespace, name string)
 // createIAMServiceAccountTask creates the iamserviceaccount in CloudFormation
 func (c *StackCollection) createIAMServiceAccountTask(errs chan error, spec *api.ClusterIAMServiceAccount, oidc *iamoidc.OpenIDConnectManager, replaceExistingRole bool) error {
 	name := c.makeIAMServiceAccountStackName(spec.Namespace, spec.Name)
-	logger.Info("building iamserviceaccount stack %q", name)
+	logrus.Infof("building iamserviceaccount stack %q", name)
 	stack := builder.NewIAMServiceAccountResourceSet(spec, oidc)
 	if err := stack.AddAllResources(); err != nil {
 		return err
@@ -40,7 +40,7 @@ func (c *StackCollection) createIAMServiceAccountTask(errs chan error, spec *api
 		}
 		var awsErr awserr.Error
 		if errors.As(err, &awsErr) && awsErr.Code() == cfn.ErrCodeAlreadyExistsException {
-			logger.Debug("CFN stack for IRSA already exists, replacing it with a new stack")
+			logrus.Debugf("CFN stack for IRSA already exists, replacing it with a new stack")
 			if err := c.DeleteStackByNameSync(name); err != nil {
 				close(errs)
 				return errors.Wrap(err, "error deleting stack")
@@ -68,7 +68,7 @@ func (c *StackCollection) DescribeIAMServiceAccountStacks() ([]*Stack, error) {
 			iamServiceAccountStacks = append(iamServiceAccountStacks, s)
 		}
 	}
-	logger.Debug("iamserviceaccounts = %v", iamServiceAccountStacks)
+	logrus.Debugf("iamserviceaccounts = %v", iamServiceAccountStacks)
 	return iamServiceAccountStacks, nil
 }
 
@@ -151,7 +151,7 @@ func (c *StackCollection) GetIAMAddonsStacks() ([]*Stack, error) {
 			iamAddonStacks = append(iamAddonStacks, s)
 		}
 	}
-	logger.Debug("iamserviceaccounts = %v", iamAddonStacks)
+	logrus.Debugf("iamserviceaccounts = %v", iamAddonStacks)
 	return iamAddonStacks, nil
 }
 

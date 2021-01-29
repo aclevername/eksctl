@@ -2,7 +2,7 @@ package cmdutils
 
 import (
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
 )
@@ -10,7 +10,7 @@ import (
 func PopulateNodegroup(stackManager *manager.StackCollection, name string, cfg *api.ClusterConfig, ctl api.ClusterProvider) error {
 	nodeGroupType, err := stackManager.GetNodeGroupStackType(name)
 	if err != nil {
-		logger.Debug("failed to fetch nodegroup %q stack: %v", name, err)
+		logrus.Debugf("failed to fetch nodegroup %q stack: %v", name, err)
 		_, err := ctl.EKS().DescribeNodegroup(&eks.DescribeNodegroupInput{
 			ClusterName:   &cfg.Metadata.Name,
 			NodegroupName: &name,

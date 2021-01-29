@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +29,7 @@ func DoesAWSNodeSupportMultiArch(rawClient kubernetes.RawClientInterface, region
 	clusterDaemonSet, err := rawClient.ClientSet().AppsV1().DaemonSets(metav1.NamespaceSystem).Get(context.TODO(), AWSNode, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
-			logger.Warning("%q was not found", AWSNode)
+			logrus.Warningf("%q was not found", AWSNode)
 			return true, nil
 		}
 		return false, errors.Wrapf(err, "getting %q", AWSNode)
@@ -69,7 +69,7 @@ func UpdateAWSNode(rawClient kubernetes.RawClientInterface, region string, plan 
 	clusterDaemonSet, err := rawClient.ClientSet().AppsV1().DaemonSets(metav1.NamespaceSystem).Get(context.TODO(), AWSNode, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
-			logger.Warning("%q was not found", AWSNode)
+			logrus.Warningf("%q was not found", AWSNode)
 			return false, nil
 		}
 		return false, errors.Wrapf(err, "getting %q", AWSNode)
@@ -131,7 +131,7 @@ func UpdateAWSNode(rawClient kubernetes.RawClientInterface, region string, plan 
 			if plan {
 				// eniconfigs.crd.k8s.amazonaws.com CRD is only partially defined in the
 				// manifest, and causes a range of issue in plan mode, we can skip it
-				logger.Info(resource.LogAction(plan, "replaced"))
+				logrus.Infof(resource.LogAction(plan, "replaced"))
 				continue
 			}
 		case "ServiceAccount":
@@ -142,7 +142,7 @@ func UpdateAWSNode(rawClient kubernetes.RawClientInterface, region string, plan 
 				return false, err
 			}
 			if exists {
-				logger.Info(resource.LogAction(plan, "skipped existing"))
+				logrus.Infof(resource.LogAction(plan, "skipped existing"))
 				continue
 			}
 		}
@@ -151,18 +151,18 @@ func UpdateAWSNode(rawClient kubernetes.RawClientInterface, region string, plan 
 		if err != nil {
 			return false, err
 		}
-		logger.Info(status)
+		logrus.Infof(status)
 	}
 
 	if plan {
 		if tagMismatch {
-			logger.Critical("(plan) %q is not up-to-date", AWSNode)
+			logrus.Errorf("(plan) %q is not up-to-date", AWSNode)
 			return true, nil
 		}
-		logger.Info("(plan) %q is already up-to-date", AWSNode)
+		logrus.Infof("(plan) %q is already up-to-date", AWSNode)
 		return false, nil
 	}
 
-	logger.Info("%q is now up-to-date", AWSNode)
+	logrus.Infof("%q is now up-to-date", AWSNode)
 	return false, nil
 }

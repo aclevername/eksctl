@@ -2,8 +2,8 @@ package fargate
 
 import (
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/utils/strings"
 )
@@ -15,7 +15,7 @@ func (c *Client) ReadProfile(name string) (*api.FargateProfile, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get Fargate profile %q", name)
 	}
-	logger.Debug("Fargate profile: describe request: received: %#v", out)
+	logrus.Debugf("Fargate profile: describe request: received: %#v", out)
 	return toFargateProfile(out.FargateProfile), nil
 }
 
@@ -42,7 +42,7 @@ func (c *Client) ListProfiles() ([]*string, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get Fargate profile(s) for cluster %q", c.clusterName)
 	}
-	logger.Debug("Fargate profile: list request: received %v profile(s): %#v", len(out.FargateProfileNames), out)
+	logrus.Debugf("Fargate profile: list request: received %v profile(s): %#v", len(out.FargateProfileNames), out)
 	return out.FargateProfileNames, nil
 }
 
@@ -50,7 +50,7 @@ func listRequest(clusterName string) *eks.ListFargateProfilesInput {
 	request := &eks.ListFargateProfilesInput{
 		ClusterName: &clusterName,
 	}
-	logger.Debug("Fargate profile: list request: sending: %#v", request)
+	logrus.Debugf("Fargate profile: list request: sending: %#v", request)
 	return request
 }
 

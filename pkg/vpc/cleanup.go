@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 )
@@ -44,11 +44,11 @@ func findDanglingENIs(ec2API ec2iface.EC2API, spec *api.ClusterConfig) ([]string
 			id := *eni.NetworkInterfaceId
 			for _, sg := range eni.Groups {
 				if securityGroupRE.MatchString(*sg.GroupName) {
-					logger.Debug("found %q, which belongs to our security group %q (%s)", id, *sg.GroupName, *sg.GroupId)
+					logrus.Debugf("found %q, which belongs to our security group %q (%s)", id, *sg.GroupName, *sg.GroupId)
 					eniIDs = append(eniIDs, id)
 					break
 				}
-				logger.Debug("found %q, but it belongs to security group %q (%s), which does not appear to be ours", id, *sg.GroupName, *sg.GroupId)
+				logrus.Debugf("found %q, but it belongs to security group %q (%s), which does not appear to be ours", id, *sg.GroupName, *sg.GroupId)
 
 			}
 		}
@@ -74,7 +74,7 @@ func CleanupNetworkInterfaces(ec2API ec2iface.EC2API, spec *api.ClusterConfig) e
 		if _, err := ec2API.DeleteNetworkInterface(input); err != nil {
 			return errors.Wrapf(err, "unable to delete network interface %q", eniID)
 		}
-		logger.Debug("deleted network interface %q", eniID)
+		logrus.Debugf("deleted network interface %q", eniID)
 	}
 	return nil
 }

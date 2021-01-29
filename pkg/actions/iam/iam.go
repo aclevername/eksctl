@@ -3,7 +3,8 @@ package iam
 import (
 	"fmt"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
+
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
 	"github.com/weaveworks/eksctl/pkg/eks"
@@ -39,11 +40,11 @@ func New(clusterName string, clusterProvider *eks.ClusterProvider, stackManager 
 }
 
 func doTasks(taskTree *tasks.TaskTree) error {
-	logger.Info(taskTree.Describe())
+	logrus.Infof(taskTree.Describe())
 	if errs := taskTree.DoAllSync(); len(errs) > 0 {
-		logger.Info("%d error(s) occurred and IAM Role stacks haven't been updated properly, you may wish to check CloudFormation console", len(errs))
+		logrus.Infof("%d error(s) occurred and IAM Role stacks haven't been updated properly, you may wish to check CloudFormation console", len(errs))
 		for _, err := range errs {
-			logger.Critical("%s\n", err.Error())
+			logrus.Errorf("%s\n", err.Error())
 		}
 		return fmt.Errorf("failed to create iamserviceaccount(s)")
 	}

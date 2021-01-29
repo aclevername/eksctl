@@ -9,8 +9,8 @@ import (
 	"time"
 
 	portforward "github.com/justinbarrick/go-k8s-portforward"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -134,7 +134,7 @@ func portForward(namespace string, nameLabelValue string, port int, name string,
 			break
 		}
 		if !strings.Contains(err.Error(), "Could not find running pod for selector") {
-			logger.Warning("%s is not ready yet (%s), retrying ...", name, err)
+			logrus.Warningf("%s is not ready yet (%s), retrying ...", name, err)
 		}
 	}
 	if time.Now().After(podDeadline) {
@@ -148,7 +148,7 @@ func portForward(namespace string, nameLabelValue string, port int, name string,
 		if err == nil {
 			break
 		}
-		logger.Warning("%s is not ready yet (%s), retrying ...", name, err)
+		logrus.Warningf("%s is not ready yet (%s), retrying ...", name, err)
 	}
 	if time.Now().After(retryDeadline) {
 		return fmt.Errorf("timed out waiting for %s to be operative", name)

@@ -6,8 +6,8 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/kballard/go-shellquote"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/eksctl/pkg/utils/kubeconfig"
 	"github.com/weaveworks/launcher/pkg/kubectl"
@@ -29,12 +29,12 @@ func checkKubectlVersion(env []string) error {
 	if err != nil {
 		return fmt.Errorf("kubectl not found, v1.10.0 or newer is required")
 	}
-	logger.Debug("kubectl: %q", kubectlPath)
+	logrus.Debugf("kubectl: %q", kubectlPath)
 
 	clientVersion, _, ignoredErr := kubectl.GetVersionInfo(ktl)
-	logger.Debug("kubectl version: %s", clientVersion)
+	logrus.Debugf("kubectl version: %s", clientVersion)
 	if ignoredErr != nil {
-		logger.Debug("ignored error: %s", ignoredErr)
+		logrus.Debugf("ignored error: %s", ignoredErr)
 	}
 
 	version, err := semver.Parse(strings.TrimLeft(clientVersion, "v"))
@@ -63,7 +63,7 @@ func CheckAllCommands(kubeconfigPath string, isContextSet bool, contextName stri
 		if !found {
 			return fmt.Errorf("could not find any of the authenticator commands: %s", strings.Join(kubeconfig.AuthenticatorCommands(), ", "))
 		}
-		logger.Debug("found authenticator: %s", authenticator)
+		logrus.Debugf("found authenticator: %s", authenticator)
 	}
 
 	if kubeconfigPath != "" {
@@ -92,9 +92,9 @@ func CheckAllCommands(kubeconfigPath string, isContextSet bool, contextName stri
 			return fmt.Errorf("Kubernetes version %s found, v1.10.0 or newer is expected with EKS %s", serverVersion, suggestion)
 		}
 
-		logger.Info("kubectl command should work with %q, try '%s'", kubeconfigPath, fmtKubectlCmd(ktl, "get", "nodes"))
+		logrus.Infof("kubectl command should work with %q, try '%s'", kubeconfigPath, fmtKubectlCmd(ktl, "get", "nodes"))
 	} else {
-		logger.Debug("skipping kubectl integration checks, as writing kubeconfig file is disabled")
+		logrus.Debugf("skipping kubectl integration checks, as writing kubeconfig file is disabled")
 	}
 
 	return nil

@@ -12,8 +12,8 @@ import (
 	fluxinstall "github.com/fluxcd/flux/pkg/install"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	helmopinstall "github.com/fluxcd/helm-operator/pkg/install"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
@@ -67,13 +67,13 @@ func NewInstaller(k8sRestConfig *rest.Config, k8sClientSet kubeclient.Interface,
 // Run runs the Flux installer
 func (fi *Installer) Run(ctx context.Context) (string, error) {
 
-	logger.Info("Generating manifests")
+	logrus.Infof("Generating manifests")
 	manifests, err := fi.getManifests()
 	if err != nil {
 		return "", err
 	}
 
-	logger.Info("Cloning %s", fi.opts.Repo.URL)
+	logrus.Infof("Cloning %s", fi.opts.Repo.URL)
 	options := git.CloneOptions{
 		URL:       fi.opts.Repo.URL,
 		Branch:    fi.opts.Repo.Branch,
@@ -88,12 +88,12 @@ func (fi *Installer) Run(ctx context.Context) (string, error) {
 		if cleanCloneDir {
 			_ = fi.gitClient.DeleteLocalRepo()
 		} else {
-			logger.Critical("You may find the local clone of %s used by eksctl at %s",
+			logrus.Errorf("You may find the local clone of %s used by eksctl at %s",
 				fi.opts.Repo.URL,
 				cloneDir)
 		}
 	}()
-	logger.Info("Writing Flux manifests")
+	logrus.Infof("Writing Flux manifests")
 	fluxManifestDir := filepath.Join(cloneDir, fi.opts.Repo.FluxPath)
 	if err := writeFluxManifests(fluxManifestDir, manifests); err != nil {
 		return "", err
@@ -103,49 +103,49 @@ func (fi *Installer) Run(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	logger.Info("Applying manifests")
+	logrus.Infof("Applying manifests")
 	if err := fi.applyManifests(manifests); err != nil {
 		return "", err
 	}
 
 	if api.IsEnabled(fi.opts.Operator.WithHelm) {
-		logger.Info("Waiting for Helm Operator to start")
+		logrus.Infof("Waiting for Helm Operator to start")
 		if err := waitForHelmOpToStart(fi.opts.Operator.Namespace, fi.timeout, fi.k8sClientSet); err != nil {
 			return "", err
 		}
-		logger.Info("Helm Operator started successfully")
-		logger.Info("see https://docs.fluxcd.io/projects/helm-operator for details on how to use the Helm Operator")
+		logrus.Infof("Helm Operator started successfully")
+		logrus.Infof("see https://docs.fluxcd.io/projects/helm-operator for details on how to use the Helm Operator")
 	}
 
-	logger.Info("Waiting for Flux to start")
+	logrus.Infof("Waiting for Flux to start")
 	err = waitForFluxToStart(fi.opts.Operator.Namespace, fi.timeout, fi.k8sClientSet)
 	if err != nil {
 		return "", err
 	}
-	logger.Info("fetching public SSH key from Flux")
+	logrus.Infof("fetching public SSH key from Flux")
 	fluxSSHKey, err := getPublicKeyFromFlux(ctx, fi.opts.Operator.Namespace, fi.timeout, fi.k8sRestConfig, fi.k8sClientSet)
 	if err != nil {
 		return "", err
 	}
 
-	logger.Info("Flux started successfully")
-	logger.Info("see https://docs.fluxcd.io/projects/flux for details on how to use Flux")
+	logrus.Infof("Flux started successfully")
+	logrus.Infof("see https://docs.fluxcd.io/projects/flux for details on how to use Flux")
 
 	if api.IsEnabled(fi.opts.Operator.CommitOperatorManifests) {
-		logger.Info("Committing and pushing manifests to %s", fi.opts.Repo.URL)
+		logrus.Infof("Committing and pushing manifests to %s", fi.opts.Repo.URL)
 		if err = fi.addFilesToRepo(); err != nil {
 			return "", err
 		}
 	}
 	cleanCloneDir = true
 
-	logger.Info("Flux will only operate properly once it has write-access to the Git repository")
+	logrus.Infof("Flux will only operate properly once it has write-access to the Git repository")
 	instruction := fmt.Sprintf("please configure %s so that the following Flux SSH public key has write access to it\n%s",
 		fi.opts.Repo.URL, fluxSSHKey.Key)
 
 	client, err := deploykey.GetDeployKeyClient(ctx, fi.cfg.Git.Repo.URL)
 	if err != nil {
-		logger.Warning(
+		logrus.Warningf(
 			"could not find git provider implementation for url %q: %q. Skipping authorization of SSH key",
 			fi.cfg.Git.Repo.URL,
 			err.Error(),
@@ -173,7 +173,7 @@ func (fi *Installer) IsFluxInstalled() (bool, error) {
 	_, err := fi.k8sClientSet.AppsV1().Deployments(fi.opts.Operator.Namespace).Get(context.TODO(), "flux", metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
-			logger.Warning("flux deployment was not found")
+			logrus.Warningf("flux deployment was not found")
 			return false, nil
 		}
 		return false, errors.Wrapf(err, "error while looking for flux pod")

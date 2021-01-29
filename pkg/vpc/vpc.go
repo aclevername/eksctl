@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/sets"
-
-	"github.com/kris-nova/logger"
 
 	"github.com/aws/aws-sdk-go/aws"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
@@ -48,13 +47,13 @@ func SetSubnets(vpc *api.ClusterVPC, availabilityZones []string) error {
 		if err != nil {
 			return err
 		}
-		logger.Debug("VPC CIDR (%s) was divided into 8 subnets %v", vpc.CIDR.String(), zoneCIDRs)
+		logrus.Debugf("VPC CIDR (%s) was divided into 8 subnets %v", vpc.CIDR.String(), zoneCIDRs)
 	case subnetsTotal <= 16:
 		zoneCIDRs, err = SplitInto16(&vpc.CIDR.IPNet)
 		if err != nil {
 			return err
 		}
-		logger.Debug("VPC CIDR (%s) was divided into 16 subnets %v", vpc.CIDR.String(), zoneCIDRs)
+		logrus.Debugf("VPC CIDR (%s) was divided into 16 subnets %v", vpc.CIDR.String(), zoneCIDRs)
 	default:
 		return fmt.Errorf("cannot create more than 16 subnets, %d requested", subnetsTotal)
 	}
@@ -68,7 +67,7 @@ func SetSubnets(vpc *api.ClusterVPC, availabilityZones []string) error {
 		vpc.Subnets.Public.SetAZ(zone, api.Network{
 			CIDR: &ipnet.IPNet{IPNet: *public},
 		})
-		logger.Info("subnets for %s - public:%s private:%s", zone, public.String(), private.String())
+		logrus.Infof("subnets for %s - public:%s private:%s", zone, public.String(), private.String())
 	}
 
 	return nil
@@ -330,13 +329,13 @@ func ValidateLegacySubnetsForNodeGroups(spec *api.ClusterConfig, provider api.Cl
 	if err := ValidateExistingPublicSubnets(provider, subnetsToValidate.List()); err != nil {
 		// If the cluster endpoint is reachable from the VPC nodes might still be able to join
 		if spec.HasPrivateEndpointAccess() {
-			logger.Warning("public subnets for one or more nodegroups have %q disabled. This means that nodes won't "+
+			logrus.Warningf("public subnets for one or more nodegroups have %q disabled. This means that nodes won't "+
 				"get public IP addresses. If they can't reach the cluster through the private endpoint they won't be "+
 				"able to join the cluster", "MapPublicIpOnLaunch")
 			return nil
 		}
 
-		logger.Critical(err.Error())
+		logrus.Errorf(err.Error())
 		return errors.Errorf("subnets for one or more new nodegroups don't meet requirements. "+
 			"To fix this, please run `eksctl utils update-legacy-subnet-settings --cluster %s`",
 			spec.Metadata.Name)
@@ -362,7 +361,7 @@ func ValidateExistingPublicSubnets(provider api.ClusterProvider, subnetIDs []str
 // EnsureMapPublicIPOnLaunchEnabled will enable MapPublicIpOnLaunch in EC2 for all given subnet IDs
 func EnsureMapPublicIPOnLaunchEnabled(provider api.ClusterProvider, subnetIDs []string) error {
 	if len(subnetIDs) == 0 {
-		logger.Debug("no subnets to update")
+		logrus.Debugf("no subnets to update")
 		return nil
 	}
 
@@ -372,7 +371,7 @@ func EnsureMapPublicIPOnLaunchEnabled(provider api.ClusterProvider, subnetIDs []
 			MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
 		}
 
-		logger.Debug("enabling MapPublicIpOnLaunch for subnet %q", s)
+		logrus.Debugf("enabling MapPublicIpOnLaunch for subnet %q", s)
 		_, err := provider.EC2().ModifySubnetAttribute(input)
 		if err != nil {
 			return errors.Wrapf(err, "unable to set MapPublicIpOnLaunch attribute to true for subnet %q", s)

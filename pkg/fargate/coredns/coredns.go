@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/utils/retry"
 	v1 "k8s.io/api/core/v1"
@@ -68,12 +68,12 @@ func isDeploymentScheduledOnFargate(clientSet kubeclient.Interface) (bool, error
 		return false, errors.New("nil spec.replicas in coredns deployment")
 	}
 	computeType, exists := coredns.Spec.Template.Annotations[ComputeTypeAnnotationKey]
-	logger.Debug("deployment %q with compute type %q currently has %v/%v replicas running", Name, computeType, coredns.Status.ReadyReplicas, *coredns.Spec.Replicas)
+	logrus.Debugf("deployment %q with compute type %q currently has %v/%v replicas running", Name, computeType, coredns.Status.ReadyReplicas, *coredns.Spec.Replicas)
 	scheduled := exists &&
 		computeType == computeTypeFargate &&
 		*coredns.Spec.Replicas == coredns.Status.ReadyReplicas
 	if scheduled {
-		logger.Info("%q is now scheduled onto Fargate", Name)
+		logrus.Infof("%q is now scheduled onto Fargate", Name)
 	}
 	return scheduled, nil
 }
@@ -90,13 +90,13 @@ func arePodsScheduledOnFargate(clientSet kubeclient.Interface) (bool, error) {
 			return false, nil
 		}
 	}
-	logger.Info("%q pods are now scheduled onto Fargate", Name)
+	logrus.Infof("%q pods are now scheduled onto Fargate", Name)
 	return true, nil
 }
 
 func isRunningOnFargate(pod *v1.Pod) bool {
 	computeType, exists := pod.Annotations[ComputeTypeAnnotationKey]
-	logger.Debug("pod %q with compute type %q and status %q is scheduled on %q", pod.Name, computeType, pod.Status.Phase, pod.Spec.NodeName)
+	logrus.Debugf("pod %q with compute type %q and status %q is scheduled on %q", pod.Name, computeType, pod.Status.Phase, pod.Spec.NodeName)
 	return exists &&
 		computeType == computeTypeFargate &&
 		pod.Status.Phase == v1.PodRunning &&
@@ -109,7 +109,7 @@ func ScheduleOnFargate(clientSet kubeclient.Interface) error {
 	if err := scheduleOnFargate(clientSet); err != nil {
 		return errors.Wrapf(err, "failed to make %q deployment schedulable on Fargate", Name)
 	}
-	logger.Info("%q is now schedulable onto Fargate", Name)
+	logrus.Infof("%q is now schedulable onto Fargate", Name)
 	return nil
 }
 

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/eksctl/pkg/addons"
 	"github.com/weaveworks/eksctl/pkg/printers"
@@ -25,7 +25,7 @@ func IsKubeProxyUpToDate(clientSet kubernetes.Interface, controlPlaneVersion str
 	d, err := clientSet.AppsV1().DaemonSets(metav1.NamespaceSystem).Get(context.TODO(), KubeProxy, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
-			logger.Warning("%q was not found", KubeProxy)
+			logrus.Warningf("%q was not found", KubeProxy)
 			return true, nil
 		}
 		return false, errors.Wrapf(err, "getting %q", KubeProxy)
@@ -50,7 +50,7 @@ func UpdateKubeProxyImageTag(clientSet kubernetes.Interface, controlPlaneVersion
 	d, err := clientSet.AppsV1().DaemonSets(metav1.NamespaceSystem).Get(context.TODO(), KubeProxy, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
-			logger.Warning("%q was not found", KubeProxy)
+			logrus.Warningf("%q was not found", KubeProxy)
 			return false, nil
 		}
 		return false, errors.Wrapf(err, "getting %q", KubeProxy)
@@ -59,7 +59,7 @@ func UpdateKubeProxyImageTag(clientSet kubernetes.Interface, controlPlaneVersion
 		return false, fmt.Errorf("%s has %d containers, expected at least 1", KubeProxy, numContainers)
 	}
 
-	if err := printer.LogObj(logger.Debug, KubeProxy+" [current] = \\\n%s\n", d); err != nil {
+	if err := printer.LogObj(logrus.Debugf, KubeProxy+" [current] = \\\n%s\n", d); err != nil {
 		return false, err
 	}
 
@@ -73,27 +73,27 @@ func UpdateKubeProxyImageTag(clientSet kubernetes.Interface, controlPlaneVersion
 	desiredTag := kubeProxyImageTag(controlPlaneVersion)
 
 	if imageParts[1] == desiredTag {
-		logger.Debug("imageParts = %v, desiredTag = %s", imageParts, desiredTag)
-		logger.Info("%q is already up-to-date", KubeProxy)
+		logrus.Debugf("imageParts = %v, desiredTag = %s", imageParts, desiredTag)
+		logrus.Infof("%q is already up-to-date", KubeProxy)
 		return false, nil
 	}
 
 	if plan {
-		logger.Critical("(plan) %q is not up-to-date", KubeProxy)
+		logrus.Errorf("(plan) %q is not up-to-date", KubeProxy)
 		return true, nil
 	}
 
 	imageParts[1] = desiredTag
 	*image = strings.Join(imageParts, ":")
 
-	if err := printer.LogObj(logger.Debug, KubeProxy+" [updated] = \\\n%s\n", d); err != nil {
+	if err := printer.LogObj(logrus.Debugf, KubeProxy+" [updated] = \\\n%s\n", d); err != nil {
 		return false, err
 	}
 	if _, err := clientSet.AppsV1().DaemonSets(metav1.NamespaceSystem).Update(context.TODO(), d, metav1.UpdateOptions{}); err != nil {
 		return false, err
 	}
 
-	logger.Info("%q is now up-to-date", KubeProxy)
+	logrus.Infof("%q is now up-to-date", KubeProxy)
 	return false, nil
 }
 

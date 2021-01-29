@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/utils/names"
 	"github.com/weaveworks/eksctl/pkg/utils/strings"
@@ -52,9 +52,9 @@ func (c *Client) CreateProfile(profile *api.FargateProfile, waitForCreation bool
 	if profile == nil {
 		return errors.New("invalid Fargate profile: nil")
 	}
-	logger.Debug("Fargate profile: create request input: %#v", profile)
+	logrus.Debugf("Fargate profile: create request input: %#v", profile)
 	out, err := c.api.CreateFargateProfile(createRequest(c.clusterName, profile))
-	logger.Debug("Fargate profile: create request: received: %#v", out)
+	logrus.Debugf("Fargate profile: create request: received: %#v", out)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create Fargate profile %q", profile.Name)
 	}
@@ -73,7 +73,7 @@ func createRequest(clusterName string, profile *api.FargateProfile) *eks.CreateF
 		Subnets:             strings.NilPointersArrayIfEmpty(strings.ToPointersArray(profile.Subnets)),
 		Tags:                strings.NilPointersMapIfEmpty(strings.ToPointersMap(profile.Tags)),
 	}
-	logger.Debug("Fargate profile: create request: sending: %#v", request)
+	logrus.Debugf("Fargate profile: create request: sending: %#v", request)
 	return request
 }
 
@@ -85,7 +85,7 @@ func (c *Client) waitForCreation(name string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed while waiting for Fargate profile %q's creation", name)
 		}
-		logger.Debug("Fargate profile: describe request: received: %#v", out)
+		logrus.Debugf("Fargate profile: describe request: received: %#v", out)
 		if created(out) {
 			return nil
 		}

@@ -9,8 +9,7 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/kris-nova/logger"
-
+	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
 
@@ -157,6 +156,6 @@ func DecodeCloudConfig(s string) (*CloudConfig, error) {
 
 func safeClose(c io.Closer) {
 	if err := c.Close(); err != nil {
-		logger.Debug("could not close file: %v", err)
+		logrus.Debugf("could not close file: %v", err)
 	}
 }

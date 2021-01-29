@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/weaveworks/eksctl/pkg/fargate/coredns"
@@ -52,7 +52,7 @@ func (fpt *fargateProfilesTask) Do(errCh chan error) error {
 func DoCreateFargateProfiles(config *api.ClusterConfig, fargateClient FargateClient) error {
 	clusterName := config.Metadata.Name
 	for _, profile := range config.FargateProfiles {
-		logger.Info("creating Fargate profile %q on EKS cluster %q", profile.Name, clusterName)
+		logrus.Infof("creating Fargate profile %q on EKS cluster %q", profile.Name, clusterName)
 
 		// Default the pod execution role ARN to be the same as the cluster
 		// role defined in CloudFormation:
@@ -67,9 +67,9 @@ func DoCreateFargateProfiles(config *api.ClusterConfig, fargateClient FargateCli
 		err := fargateClient.CreateProfile(profile, true)
 		switch errors.Cause(err).(type) {
 		case nil:
-			logger.Info("created Fargate profile %q on EKS cluster %q", profile.Name, clusterName)
+			logrus.Infof("created Fargate profile %q on EKS cluster %q", profile.Name, clusterName)
 		case *eks.ResourceInUseException:
-			logger.Info("Either Fargate profile %q already exists on EKS cluster %q or another profile is being created/deleted, no action taken", profile.Name, clusterName)
+			logrus.Infof("Either Fargate profile %q already exists on EKS cluster %q or another profile is being created/deleted, no action taken", profile.Name, clusterName)
 		default:
 			return errors.Wrapf(err, "failed to create Fargate profile %q on EKS cluster %q", profile.Name, clusterName)
 		}

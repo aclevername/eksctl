@@ -4,14 +4,13 @@ import (
 	"fmt"
 
 	awseks "github.com/aws/aws-sdk-go/service/eks"
+	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 
 	"github.com/weaveworks/eksctl/pkg/eks"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
-
-	"github.com/kris-nova/logger"
 )
 
 func (m *Manager) Delete(nodeGroups []*api.NodeGroup, managedNodeGroups []*api.ManagedNodeGroup, wait, plan bool) error {
@@ -59,7 +58,7 @@ func (m *Manager) Delete(nodeGroups []*api.NodeGroup, managedNodeGroups []*api.M
 	}
 
 	tasks.PlanMode = plan
-	logger.Info(tasks.Describe())
+	logrus.Infof(tasks.Describe())
 	if errs := tasks.DoAllSync(); len(errs) > 0 {
 		return handleErrors(errs, "nodegroup(s)")
 	}
@@ -87,15 +86,15 @@ func (d *DeleteUnownedNodegroupTask) Do(errorchan chan error) error {
 	}()
 
 	if out != nil {
-		logger.Debug("Delete nodegroup %q output: %s", d.nodegroup, out.String())
+		logrus.Debugf("Delete nodegroup %q output: %s", d.nodegroup, out.String())
 	}
 	return err
 }
 
 func handleErrors(errs []error, subject string) error {
-	logger.Info("%d error(s) occurred while deleting %s", len(errs), subject)
+	logrus.Infof("%d error(s) occurred while deleting %s", len(errs), subject)
 	for _, err := range errs {
-		logger.Critical("%s\n", err.Error())
+		logrus.Errorf("%s\n", err.Error())
 	}
 	return fmt.Errorf("failed to delete %s", subject)
 }

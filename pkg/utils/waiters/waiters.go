@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func WaitForCondition(waitTimeout, waitInterval time.Duration, returnErr error, condition func() (bool, error)) error {
@@ -48,7 +48,7 @@ func Wait(name, msg string, acceptors []request.WaiterAcceptor, newRequest func(
 	defer cancel()
 	startTime := time.Now()
 	w := makeWaiter(ctx, name, msg, acceptors, newRequest)
-	logger.Debug("start %s", msg)
+	logrus.Debugf("start %s", msg)
 	if waitErr := w.WaitWithContext(ctx); waitErr != nil {
 		if troubleshoot != nil {
 			if wrappedErr := troubleshoot(desiredStatus); wrappedErr != nil {
@@ -57,7 +57,7 @@ func Wait(name, msg string, acceptors []request.WaiterAcceptor, newRequest func(
 		}
 		return errors.Wrap(waitErr, msg)
 	}
-	logger.Debug("done after %s of %s", time.Since(startTime), msg)
+	logrus.Debugf("done after %s of %s", time.Since(startTime), msg)
 	return nil
 }
 
@@ -68,7 +68,7 @@ func makeWaiter(ctx context.Context, name, msg string, acceptors []request.Waite
 		Delay:       makeWaiterDelay(),
 		Acceptors:   acceptors,
 		NewRequest: func(_ []request.Option) (*request.Request, error) {
-			logger.Info(msg)
+			logrus.Infof(msg)
 			req := newRequest()
 			req.SetContext(ctx)
 			return req, nil

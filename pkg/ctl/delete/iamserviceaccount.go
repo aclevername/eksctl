@@ -3,7 +3,7 @@ package delete
 import (
 	"fmt"
 
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -106,7 +106,7 @@ func doDeleteIAMServiceAccount(cmd *cmdutils.Cmd, serviceAccount *api.ClusterIAM
 	stackManager := ctl.NewStackManager(cfg)
 
 	if cmd.ClusterConfigFile != "" {
-		logger.Info("comparing %d iamserviceaccounts defined in the given config (%q) against remote state", len(cfg.IAM.ServiceAccounts), cmd.ClusterConfigFile)
+		logrus.Infof("comparing %d iamserviceaccounts defined in the given config (%q) against remote state", len(cfg.IAM.ServiceAccounts), cmd.ClusterConfigFile)
 		if err := saFilter.SetDeleteFilter(stackManager, onlyMissing, cfg); err != nil {
 			return err
 		}
@@ -122,15 +122,15 @@ func doDeleteIAMServiceAccount(cmd *cmdutils.Cmd, serviceAccount *api.ClusterIAM
 	}
 	tasks.PlanMode = cmd.Plan
 
-	if err := printer.LogObj(logger.Debug, "cfg.json = \\\n%s\n", cfg); err != nil {
+	if err := printer.LogObj(logrus.Debugf, "cfg.json = \\\n%s\n", cfg); err != nil {
 		return err
 	}
 
-	logger.Info(tasks.Describe())
+	logrus.Infof(tasks.Describe())
 	if errs := tasks.DoAllSync(); len(errs) > 0 {
-		logger.Info("%d error(s) occurred and IAM Role stacks haven't been deleted properly, you may wish to check CloudFormation console", len(errs))
+		logrus.Infof("%d error(s) occurred and IAM Role stacks haven't been deleted properly, you may wish to check CloudFormation console", len(errs))
 		for _, err := range errs {
-			logger.Critical("%s\n", err.Error())
+			logrus.Errorf("%s\n", err.Error())
 		}
 		return fmt.Errorf("failed to delete iamserviceaccount(s)")
 	}

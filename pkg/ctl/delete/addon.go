@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	awseks "github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/weaveworks/eksctl/pkg/actions/addon"
@@ -58,7 +58,7 @@ func deleteAddon(cmd *cmdutils.Cmd) error {
 		return fmt.Errorf("failed to fetch cluster %q version: %v", cmd.ClusterConfig.Metadata.Name, err)
 	}
 
-	logger.Info("Kubernetes version %q in use by cluster %q", *output.Cluster.Version, cmd.ClusterConfig.Metadata.Name)
+	logrus.Infof("Kubernetes version %q in use by cluster %q", *output.Cluster.Version, cmd.ClusterConfig.Metadata.Name)
 	cmd.ClusterConfig.Metadata.Version = *output.Cluster.Version
 
 	addonManager, err := addon.New(cmd.ClusterConfig, clusterProvider, stackManager, *cmd.ClusterConfig.IAM.WithOIDC, nil, nil)

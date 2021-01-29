@@ -6,8 +6,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/request"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/builder"
@@ -40,9 +40,9 @@ func (c *StackCollection) waitWithAcceptors(i *Stack, acceptors []request.Waiter
 	troubleshoot := func(desiredStatus string) error {
 		s, err := c.DescribeStack(i)
 		if err != nil {
-			logger.Debug("describeErr=%v", err)
+			logrus.Debugf("describeErr=%v", err)
 		} else {
-			logger.Critical("unexpected status %q while %s", *s.StackStatus, msg)
+			logrus.Errorf("unexpected status %q while %s", *s.StackStatus, msg)
 			c.troubleshootStackFailureCause(i, desiredStatus)
 		}
 		return nil
@@ -74,14 +74,14 @@ func (c *StackCollection) waitWithAcceptorsChangeSet(i *Stack, changesetName str
 	troubleshoot := func(desiredStatus string) error {
 		s, err := c.DescribeStackChangeSet(i, changesetName)
 		if err != nil {
-			logger.Debug("describeChangeSetErr=%v", err)
+			logrus.Debugf("describeChangeSetErr=%v", err)
 		} else {
 			if strings.Contains(*s.StatusReason, "The submitted information didn't contain changes") {
 				// ignore this error
-				logger.Info("nothing to update")
+				logrus.Infof("nothing to update")
 				return &noChangeError{*s.StatusReason}
 			}
-			logger.Critical("unexpected status %q while %s, reason: %s", *s.Status, msg, *s.StatusReason)
+			logrus.Errorf("unexpected status %q while %s, reason: %s", *s.Status, msg, *s.StatusReason)
 		}
 		return nil
 	}
@@ -90,10 +90,10 @@ func (c *StackCollection) waitWithAcceptorsChangeSet(i *Stack, changesetName str
 }
 
 func (c *StackCollection) troubleshootStackFailureCause(i *Stack, desiredStatus string) {
-	logger.Info("fetching stack events in attempt to troubleshoot the root cause of the failure")
+	logrus.Infof("fetching stack events in attempt to troubleshoot the root cause of the failure")
 	events, err := c.DescribeStackEvents(i)
 	if err != nil {
-		logger.Critical("cannot fetch stack events: %v", err)
+		logrus.Errorf("cannot fetch stack events: %v", err)
 		return
 	}
 	for _, e := range events {
@@ -105,23 +105,23 @@ func (c *StackCollection) troubleshootStackFailureCause(i *Stack, desiredStatus 
 		case cfn.StackStatusCreateComplete:
 			switch *e.ResourceStatus {
 			case cfn.ResourceStatusCreateFailed:
-				logger.Critical(msg)
+				logrus.Errorf(msg)
 			case cfn.ResourceStatusDeleteInProgress:
-				logger.Warning(msg)
+				logrus.Warningf(msg)
 			default:
-				logger.Debug(msg) // only output this when verbose logging is enabled
+				logrus.Debugf(msg) // only output this when verbose logging is enabled
 			}
 		case cfn.StackStatusDeleteComplete:
 			switch *e.ResourceStatus {
 			case cfn.ResourceStatusDeleteFailed:
-				logger.Critical(msg)
+				logrus.Errorf(msg)
 			case cfn.ResourceStatusDeleteSkipped:
-				logger.Warning(msg)
+				logrus.Warningf(msg)
 			default:
-				logger.Debug(msg) // only output this when verbose logging is enabled
+				logrus.Debugf(msg) // only output this when verbose logging is enabled
 			}
 		default:
-			logger.Info(msg)
+			logrus.Infof(msg)
 		}
 	}
 }

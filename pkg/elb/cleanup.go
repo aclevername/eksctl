@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -17,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
-	"github.com/kris-nova/logger"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 
@@ -84,12 +84,12 @@ func Cleanup(ctx context.Context, ec2API ec2iface.EC2API, elbAPI elbiface.ELBAPI
 		if lb == nil {
 			continue
 		}
-		logger.Debug(
+		logrus.Debugf(
 			"tracking deletion of load balancer %s of kind %d with security groups %v",
 			lb.name, lb.kind, convertStringSetToSlice(lb.ownedSecurityGroupIDs),
 		)
 		awsLoadBalancers[lb.name] = *lb
-		logger.Debug("deleting 'type: LoadBalancer' Service %s/%s", s.Namespace, s.Name)
+		logrus.Debugf("deleting 'type: LoadBalancer' Service %s/%s", s.Namespace, s.Name)
 		if err := kubernetesCS.CoreV1().Services(s.Namespace).Delete(context.TODO(), s.Name, metav1.DeleteOptions{}); err != nil {
 			errStr := fmt.Sprintf("cannot delete Kubernetes Service %s/%s: %s", s.Namespace, s.Name, err)
 			if k8serrors.IsForbidden(err) {
@@ -104,12 +104,12 @@ func Cleanup(ctx context.Context, ec2API ec2iface.EC2API, elbAPI elbiface.ELBAPI
 		if lb == nil {
 			continue
 		}
-		logger.Debug(
+		logrus.Debugf(
 			"tracking deletion of load balancer %s of kind %d with security groups %v",
 			lb.name, lb.kind, convertStringSetToSlice(lb.ownedSecurityGroupIDs),
 		)
 		awsLoadBalancers[lb.name] = *lb
-		logger.Debug("deleting 'kubernetes.io/ingress.class: alb' Ingress %s/%s", i.Namespace, i.Name)
+		logrus.Debugf("deleting 'kubernetes.io/ingress.class: alb' Ingress %s/%s", i.Namespace, i.Name)
 		if err := kubernetesCS.NetworkingV1beta1().Ingresses(i.Namespace).Delete(context.TODO(), i.Name, metav1.DeleteOptions{}); err != nil {
 			errStr := fmt.Sprintf("cannot delete Kubernetes Ingress %s/%s: %s", i.Namespace, i.Name, err)
 			if k8serrors.IsForbidden(err) {
@@ -125,12 +125,12 @@ func Cleanup(ctx context.Context, ec2API ec2iface.EC2API, elbAPI elbiface.ELBAPI
 		for name, lb := range awsLoadBalancers {
 			exists, err := loadBalancerExists(ctx, ec2API, elbAPI, elbv2API, lb)
 			if err != nil {
-				logger.Warning("error when checking existence of load balancer %s: %s", lb.name, err)
+				logrus.Warningf("error when checking existence of load balancer %s: %s", lb.name, err)
 			}
 			if exists {
 				continue
 			}
-			logger.Debug("load balancer %s and its security groups were deleted by the cloud provider", name)
+			logrus.Debugf("load balancer %s and its security groups were deleted by the cloud provider", name)
 			// The load balancer and its security groups have been deleted
 			delete(awsLoadBalancers, name)
 		}
@@ -143,7 +143,7 @@ func Cleanup(ctx context.Context, ec2API ec2iface.EC2API, elbAPI elbiface.ELBAPI
 		}
 		return fmt.Errorf("deadline surpassed waiting for AWS load balancers to be deleted: %s", strings.Join(lbs, ","))
 	}
-	logger.Debug("deleting load balancer Security Group orphans")
+	logrus.Debugf("deleting load balancer Security Group orphans")
 	// Orphan security-group deletion is needed due to https://github.com/kubernetes/kubernetes/issues/79994`
 	// and because we could have started the service deletion when a service didn't finish its creation
 	if err := deleteOrphanLoadBalancerSecurityGroups(ctx, ec2API, elbAPI, clusterConfig); err != nil {
@@ -176,7 +176,7 @@ func getServiceLoadBalancer(ctx context.Context, ec2API ec2iface.EC2API, elbAPI 
 func getIngressLoadBalancer(ctx context.Context, ingress networkingv1beta1.Ingress) (lb *loadBalancer) {
 	ingressCls := "kubernetes.io/ingress.class"
 	if ingress.Annotations[ingressCls] != "alb" {
-		logger.Debug("%s is not ALB Ingress, it is '%s': '%s', skip", ingress.Name, ingressCls, ingress.Annotations[ingressCls])
+		logrus.Debugf("%s is not ALB Ingress, it is '%s': '%s', skip", ingress.Name, ingressCls, ingress.Annotations[ingressCls])
 		return nil
 	}
 
@@ -184,14 +184,14 @@ func getIngressLoadBalancer(ctx context.Context, ingress networkingv1beta1.Ingre
 	// if does not pass ALB hadn't been provisioned so nothing to return.
 	if len(ingress.Status.LoadBalancer.Ingress) == 0 ||
 		len(ingress.Status.LoadBalancer.Ingress[0].Hostname) == 0 {
-		logger.Debug("%s is ALB Ingress, but probably not provisioned, skip", ingress.Name)
+		logrus.Debugf("%s is ALB Ingress, but probably not provisioned, skip", ingress.Name)
 		return nil
 	}
 	// Expected e.g. bf647c9e-default-appingres-350b-1622159649.eu-central-1.elb.amazonaws.com where AWS ALB name is
 	// bf647c9e-default-appingres-350b (cannot be longer than 32 characters).
 	hostNameParts := strings.Split(ingress.Status.LoadBalancer.Ingress[0].Hostname, ".")
 	if len(hostNameParts[0]) == 0 {
-		logger.Debug("%s is ALB Ingress, but probably not provisioned or something other unexpected, skip", ingress.Name)
+		logrus.Debugf("%s is ALB Ingress, but probably not provisioned or something other unexpected, skip", ingress.Name)
 		return nil
 	}
 	name := strings.TrimPrefix(hostNameParts[0], "internal-") // Trim 'internal-' prefix for ALB DNS name which is not a part of name.
@@ -234,12 +234,12 @@ func deleteOrphanLoadBalancerSecurityGroups(ctx context.Context, ec2API ec2iface
 		}
 		for _, sg := range result.SecurityGroups {
 			if !sgNameRegex.MatchString(*sg.GroupName) {
-				logger.Debug("ignoring non-matching security group %q", *sg.GroupName)
+				logrus.Debugf("ignoring non-matching security group %q", *sg.GroupName)
 				continue
 			}
 			if err := deleteSecurityGroup(ctx, ec2API, sg); err != nil {
 				if awsError, ok := err.(awserr.Error); ok && awsError.Code() == "DependencyViolation" {
-					logger.Debug("failed to delete security group, possibly because its load balancer is still being deleted")
+					logrus.Debugf("failed to delete security group, possibly because its load balancer is still being deleted")
 					failedSGs = append(failedSGs, sg)
 				} else {
 					return errors.Wrapf(err, "cannot delete security group %q", *sg.GroupName)
@@ -253,7 +253,7 @@ func deleteOrphanLoadBalancerSecurityGroups(ctx context.Context, ec2API ec2iface
 	}
 
 	if len(failedSGs) > 0 {
-		logger.Debug("retrying deletion of %d security groups", len(failedSGs))
+		logrus.Debugf("retrying deletion of %d security groups", len(failedSGs))
 		return deleteFailedSecurityGroups(ctx, ec2API, elbAPI, failedSGs)
 	}
 
@@ -300,7 +300,7 @@ func ensureLoadBalancerDeleted(ctx context.Context, elbAPI elbiface.ELBAPI, sg *
 			} else if err == context.DeadlineExceeded {
 				return errors.Wrap(err, "timed out looking up load balancer")
 			} else if request.IsErrorRetryable(err) {
-				logger.Debug("retrying request after %v", lbRetryAfter)
+				logrus.Debugf("retrying request after %v", lbRetryAfter)
 			} else {
 				return err
 			}
@@ -318,7 +318,7 @@ func ensureLoadBalancerDeleted(ctx context.Context, elbAPI elbiface.ELBAPI, sg *
 }
 
 func deleteSecurityGroup(ctx context.Context, ec2API ec2iface.EC2API, sg *ec2.SecurityGroup) error {
-	logger.Debug("deleting orphan Load Balancer security group %s with description %q",
+	logrus.Debugf("deleting orphan Load Balancer security group %s with description %q",
 		aws.StringValue(sg.GroupId), aws.StringValue(sg.Description))
 	input := &ec2.DeleteSecurityGroupInput{
 		GroupId: sg.GroupId,
@@ -456,7 +456,7 @@ func describeClassicLoadBalancer(ctx context.Context, elbAPI elbiface.ELBAPI,
 	var ret *elb.LoadBalancerDescription
 	switch {
 	case len(response.LoadBalancerDescriptions) > 1:
-		logger.Warning("found multiple load balancers with name: %s", name)
+		logrus.Warningf("found multiple load balancers with name: %s", name)
 		fallthrough
 	case len(response.LoadBalancerDescriptions) > 0:
 		ret = response.LoadBalancerDescriptions[0]

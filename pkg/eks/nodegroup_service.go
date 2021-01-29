@@ -1,7 +1,7 @@
 package eks
 
 import (
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/ami"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/ssh"
@@ -32,7 +32,7 @@ func (m *NodeGroupService) Normalize(nodePools []api.NodePool) error {
 					return err
 				}
 			}
-			logger.Info("nodegroup %q will use %q [%s/%s]", ng.Name, ng.AMI, ng.AMIFamily, m.cluster.Metadata.Version)
+			logrus.Infof("nodegroup %q will use %q [%s/%s]", ng.Name, ng.AMI, ng.AMIFamily, m.cluster.Metadata.Version)
 		}
 
 		ng := np.BaseNodeGroup()

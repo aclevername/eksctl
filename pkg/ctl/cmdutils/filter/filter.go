@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/gobwas/glob"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -182,7 +183,7 @@ func (f *Filter) doSetExcludeExistingFilter(names []string, resource string) err
 		}
 	}
 	if len(uniqueNames) != 0 {
-		logger.Info("%d existing %s(s) (%s) will be excluded", len(uniqueNames), resource, strings.Join(uniqueNames, ","))
+		logrus.Infof("%d existing %s(s) (%s) will be excluded", len(uniqueNames), resource, strings.Join(uniqueNames, ","))
 	}
 	return nil
 }
@@ -207,22 +208,22 @@ func (f *Filter) doLogInfo(resource string, included, excluded sets.String) {
 		if count == 1 {
 			subjectFmt = "%d %s (%s) was %s"
 		}
-		logger.Info(subjectFmt, count, resource, list, status+" (based on the include/exclude rules)")
+		logrus.Infof(subjectFmt, count, resource, list, status+" (based on the include/exclude rules)")
 	}
 
 	if f.hasIncludeRules() {
-		logger.Info("combined include rules: %s", f.describeIncludeRules())
+		logrus.Infof("combined include rules: %s", f.describeIncludeRules())
 		if included.Len() == 0 {
-			logger.Info("no %ss present in the current set were included by the filter", resource)
+			logrus.Infof("no %ss present in the current set were included by the filter", resource)
 		}
 	}
 	if included.Len() > 0 {
 		logMsg(included, "included")
 	}
 	if f.hasExcludeRules() {
-		logger.Info("combined exclude rules: %s", f.describeExcludeRules())
+		logrus.Infof("combined exclude rules: %s", f.describeExcludeRules())
 		if excluded.Len() == 0 {
-			logger.Info("no %ss present in the current set were excluded by the filter", resource)
+			logrus.Infof("no %ss present in the current set were excluded by the filter", resource)
 		}
 	}
 	if excluded.Len() > 0 {

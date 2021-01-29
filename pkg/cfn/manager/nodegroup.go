@@ -10,8 +10,8 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/blang/semver"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 
@@ -55,7 +55,7 @@ func (c *StackCollection) makeNodeGroupStackName(name string) string {
 // createNodeGroupTask creates the nodegroup
 func (c *StackCollection) createNodeGroupTask(errs chan error, ng *api.NodeGroup, supportsManagedNodes, forceAddCNIPolicy bool) error {
 	name := c.makeNodeGroupStackName(ng.Name)
-	logger.Info("building nodegroup stack %q", name)
+	logrus.Infof("building nodegroup stack %q", name)
 	stack := builder.NewNodeGroupResourceSet(c.provider, c.spec, c.makeClusterStackName(), ng, supportsManagedNodes, forceAddCNIPolicy)
 	if err := stack.AddAllResources(); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (c *StackCollection) createNodeGroupTask(errs chan error, ng *api.NodeGroup
 
 func (c *StackCollection) createManagedNodeGroupTask(errorCh chan error, ng *api.ManagedNodeGroup, forceAddCNIPolicy bool) error {
 	name := c.makeNodeGroupStackName(ng.Name)
-	logger.Info("building managed nodegroup stack %q", name)
+	logrus.Infof("building managed nodegroup stack %q", name)
 	stack := builder.NewManagedNodeGroup(c.spec, ng, builder.NewLaunchTemplateFetcher(c.provider.EC2()), c.makeClusterStackName(), forceAddCNIPolicy)
 	if err := stack.AddAllResources(); err != nil {
 		return err
@@ -101,7 +101,7 @@ func (c *StackCollection) DescribeNodeGroupStacks() ([]*Stack, error) {
 			nodeGroupStacks = append(nodeGroupStacks, s)
 		}
 	}
-	logger.Debug("nodegroups = %v", nodeGroupStacks)
+	logrus.Debugf("nodegroups = %v", nodeGroupStacks)
 	return nodeGroupStacks, nil
 }
 
@@ -173,7 +173,7 @@ func (c *StackCollection) ScaleNodeGroup(ng *api.NodeGroup) error {
 	if err != nil {
 		return errors.Wrapf(err, "error getting stack template %s", name)
 	}
-	logger.Debug("stack template (pre-scale change): %s", template)
+	logrus.Debugf("stack template (pre-scale change): %s", template)
 
 	//TODO: In the future we might want to use Goformation for strongly typed
 	//manipulation of the template.
@@ -203,18 +203,18 @@ func (c *StackCollection) ScaleNodeGroup(ng *api.NodeGroup) error {
 	changed := hasChanged(ng.DesiredCapacity, currentCapacity) || hasChanged(ng.MaxSize, currentMaxSize) || hasChanged(ng.MinSize, currentMinSize)
 
 	if !changed {
-		logger.Info("no change for nodegroup %q in cluster %q: nodes-min %d, desired %d, nodes-max %d", ng.Name,
+		logrus.Infof("no change for nodegroup %q in cluster %q: nodes-min %d, desired %d, nodes-max %d", ng.Name,
 			clusterName, currentMinSize.Int(), *ng.DesiredCapacity, currentMaxSize.Int())
 		return nil
 	}
 
 	if ng.MinSize == nil && int64(*ng.DesiredCapacity) < currentMinSize.Int() {
-		logger.Warning("the desired nodes %d is less than current nodes-min/minSize %d", *ng.DesiredCapacity, currentMinSize.Int())
+		logrus.Warningf("the desired nodes %d is less than current nodes-min/minSize %d", *ng.DesiredCapacity, currentMinSize.Int())
 		return errors.Errorf("the desired nodes %d is less than current nodes-min/minSize %d", *ng.DesiredCapacity, currentMinSize.Int())
 	}
 
 	if ng.MaxSize == nil && int64(*ng.DesiredCapacity) > currentMaxSize.Int() {
-		logger.Warning("the desired nodes %d is greater than current nodes-max/maxSize %d", *ng.DesiredCapacity, currentMaxSize.Int())
+		logrus.Warningf("the desired nodes %d is greater than current nodes-max/maxSize %d", *ng.DesiredCapacity, currentMaxSize.Int())
 		return errors.Errorf("the desired nodes %d is greater than current nodes-max/maxSize %d", *ng.DesiredCapacity, currentMaxSize.Int())
 	}
 
@@ -242,7 +242,7 @@ func (c *StackCollection) ScaleNodeGroup(ng *api.NodeGroup) error {
 	if err := updateField(maxSizePath, "max size", ng.MaxSize, currentMaxSize); err != nil {
 		return err
 	}
-	logger.Debug("stack template (post-scale change): %s", template)
+	logrus.Debugf("stack template (post-scale change): %s", template)
 
 	return c.UpdateStack(name, c.MakeChangeSetName("scale-nodegroup"), descriptionBuffer.String(), TemplateBody(template), nil)
 }
@@ -335,7 +335,7 @@ func (c *StackCollection) GetManagedNodeGroupAutoScalingGroupName(s *Stack) (str
 
 	res, err := c.provider.EKS().DescribeNodegroup(input)
 	if err != nil {
-		logger.Warning("couldn't get managed nodegroup details for stack %q", *s.StackName)
+		logrus.Warningf("couldn't get managed nodegroup details for stack %q", *s.StackName)
 		return "", nil
 	}
 
@@ -483,7 +483,7 @@ func (c *StackCollection) mapStackToNodeGroupSummary(stack *Stack, ngPaths *node
 		}
 		collectorSet := outputs.NewCollectorSet(collectors)
 		if err := collectorSet.MustCollect(*stack); err != nil {
-			logger.Warning(errors.Wrapf(err, "error collecting Cloudformation outputs for stack %s", *stack.StackName).Error())
+			logrus.Warningf(errors.Wrapf(err, "error collecting Cloudformation outputs for stack %s", *stack.StackName).Error())
 		}
 	}
 

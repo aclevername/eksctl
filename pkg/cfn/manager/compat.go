@@ -3,8 +3,8 @@ package manager
 import (
 	"fmt"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	gfnt "github.com/weaveworks/goformation/v4/cloudformation/types"
@@ -17,7 +17,7 @@ import (
 // FixClusterCompatibility adds any resources missing in the CloudFormation stack in order to support new features
 // like Managed Nodegroups and Fargate
 func (c *StackCollection) FixClusterCompatibility() error {
-	logger.Info("checking cluster stack for missing resources")
+	logrus.Infof("checking cluster stack for missing resources")
 	stack, err := c.DescribeClusterStack()
 	if err != nil {
 		return err
@@ -62,18 +62,18 @@ func (c *StackCollection) FixClusterCompatibility() error {
 	fargateUpdateRequired := !stackSupportsFargate && len(c.spec.FargateProfiles) > 0
 
 	if !managedNodeUpdateRequired && !fargateUpdateRequired {
-		logger.Info("cluster stack has all required resources")
+		logrus.Infof("cluster stack has all required resources")
 		return nil
 	}
 
 	if managedNodeUpdateRequired {
-		logger.Info("cluster stack is missing resources for Managed Nodegroups")
+		logrus.Infof("cluster stack is missing resources for Managed Nodegroups")
 	}
 	if fargateUpdateRequired {
-		logger.Info("cluster stack is missing resources for Fargate")
+		logrus.Infof("cluster stack is missing resources for Fargate")
 	}
 
-	logger.Info("adding missing resources to cluster stack")
+	logrus.Infof("adding missing resources to cluster stack")
 	_, err = c.AppendNewClusterStackResource(false, true)
 	return err
 }
@@ -92,7 +92,7 @@ func (c *StackCollection) EnsureMapPublicIPOnLaunchEnabled() error {
 	// First, make sure we enable the options in EC2. This is to make sure the settings are applied even
 	// if the stacks in Cloudformation have the setting enabled (since a stack update would produce "nothing to change"
 	// and therefore the setting would not be updated)
-	logger.Debug("enabling attribute MapPublicIpOnLaunch via EC2 on subnets %q", c.spec.PublicSubnetIDs())
+	logrus.Debugf("enabling attribute MapPublicIpOnLaunch via EC2 on subnets %q", c.spec.PublicSubnetIDs())
 	err := vpc.EnsureMapPublicIPOnLaunchEnabled(c.provider, c.spec.PublicSubnetIDs())
 	if err != nil {
 		return err
@@ -110,12 +110,12 @@ func (c *StackCollection) EnsureMapPublicIPOnLaunchEnabled() error {
 	publicSubnetsNames, err := getPublicSubnetResourceNames(outputTemplate.Raw)
 	if err != nil {
 		// Subnets do not appear in the stack because the VPC was imported
-		logger.Debug(err.Error())
+		logrus.Debugf(err.Error())
 		return nil
 	}
 
 	// Modify the subnets' properties in the stack
-	logger.Debug("ensuring subnets have MapPublicIpOnLaunch enabled")
+	logrus.Debugf("ensuring subnets have MapPublicIpOnLaunch enabled")
 	for _, subnet := range publicSubnetsNames {
 		path := subnetResourcePath(subnet)
 

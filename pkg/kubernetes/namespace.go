@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,12 +64,12 @@ func MaybeCreateNamespace(clientSet Interface, name string) error {
 	if !exists {
 		_, err = clientSet.CoreV1().Namespaces().Create(context.TODO(), NewNamespace(name), metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(err) {
-			logger.Debug("ignoring failed creation of existing namespace %q", name)
+			logrus.Debugf("ignoring failed creation of existing namespace %q", name)
 			return nil
 		} else if err != nil {
 			return err
 		}
-		logger.Info("created namespace %q", name)
+		logrus.Infof("created namespace %q", name)
 	}
 	return nil
 }

@@ -7,11 +7,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/drain/evictor"
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
 	"github.com/weaveworks/eksctl/pkg/eks"
 
@@ -89,7 +90,7 @@ func (n *NodeGroupDrainer) Drain() error {
 	}
 
 	if len(nodes.Items) == 0 {
-		logger.Warning("no nodes found in nodegroup %q (label selector: %q)", n.ng.NameString(), n.ng.ListOptions().LabelSelector)
+		logrus.Warningf("no nodes found in nodegroup %q (label selector: %q)", n.ng.NameString(), n.ng.ListOptions().LabelSelector)
 		return nil
 	}
 
@@ -128,17 +129,17 @@ func (n *NodeGroupDrainer) Drain() error {
 				return nil // no new nodes were seen
 			}
 
-			logger.Debug("already drained: %v", drainedNodes.List())
-			logger.Debug("will drain: %v", newPendingNodes.List())
+			logrus.Debugf("already drained: %v", drainedNodes.List())
+			logrus.Debugf("will drain: %v", newPendingNodes.List())
 
 			for _, node := range newPendingNodes.List() {
 				pending, err := n.evictPods(node)
 				if err != nil {
-					logger.Warning("pod eviction error (%q) on node %s", err, node)
+					logrus.Warningf("pod eviction error (%q) on node %s", err, node)
 					time.Sleep(retryDelay)
 					continue
 				}
-				logger.Debug("%d pods to be evicted from %s", pending, node)
+				logrus.Debugf("%d pods to be evicted from %s", pending, node)
 				if pending == 0 {
 					drainedNodes.Insert(node)
 				}
@@ -153,14 +154,14 @@ func (n *NodeGroupDrainer) toggleCordon(cordon bool, nodes *corev1.NodeList) {
 		if c.IsUpdateRequired() {
 			err, patchErr := c.PatchOrReplace(n.clientSet)
 			if patchErr != nil {
-				logger.Warning(patchErr.Error())
+				logrus.Warningf(patchErr.Error())
 			}
 			if err != nil {
-				logger.Critical(err.Error())
+				logrus.Errorf(err.Error())
 			}
-			logger.Info("%s node %q", cordonStatus(cordon), node.Name)
+			logrus.Infof("%s node %q", cordonStatus(cordon), node.Name)
 		} else {
-			logger.Debug("no need to %s node %q", cordonStatus(cordon), node.Name)
+			logrus.Debugf("no need to %s node %q", cordonStatus(cordon), node.Name)
 		}
 	}
 
@@ -172,7 +173,7 @@ func (n *NodeGroupDrainer) evictPods(node string) (int, error) {
 		return 0, fmt.Errorf("errs: %v", errs) // TODO: improve formatting
 	}
 	if w := list.Warnings(); w != "" {
-		logger.Warning(w)
+		logrus.Warningf(w)
 	}
 	pods := list.Pods()
 	pending := len(pods)

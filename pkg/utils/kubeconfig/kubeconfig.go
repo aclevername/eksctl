@@ -12,6 +12,7 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/utils/file"
 	"k8s.io/client-go/tools/clientcmd"
@@ -233,7 +234,7 @@ func Write(path string, newConfig clientcmdapi.Config, setContext bool) (string,
 
 	defer func() {
 		if err := unlockConfigFile(fl); err != nil {
-			logger.Critical(err.Error())
+			logrus.Errorf(err.Error())
 		}
 	}()
 
@@ -242,11 +243,11 @@ func Write(path string, newConfig clientcmdapi.Config, setContext bool) (string,
 		return "", errors.Wrapf(err, "unable to read existing kubeconfig file %q", path)
 	}
 
-	logger.Debug("merging kubeconfig files")
+	logrus.Debugf("merging kubeconfig files")
 	merged := merge(config, &newConfig)
 
 	if setContext && newConfig.CurrentContext != "" {
-		logger.Debug("setting current-context to %s", newConfig.CurrentContext)
+		logrus.Debugf("setting current-context to %s", newConfig.CurrentContext)
 		merged.CurrentContext = newConfig.CurrentContext
 	}
 
@@ -316,21 +317,21 @@ func MaybeDeleteConfig(meta *api.ClusterMeta) {
 	if file.Exists(p) {
 		fl, err := lockConfigFile(p)
 		if err != nil {
-			logger.Critical(err.Error())
+			logrus.Errorf(err.Error())
 		}
 
 		defer func() {
 			if err := unlockConfigFile(fl); err != nil {
-				logger.Critical(err.Error())
+				logrus.Errorf(err.Error())
 			}
 		}()
 
 		if err := isValidConfig(p, meta.Name); err != nil {
-			logger.Debug(err.Error())
+			logrus.Debugf(err.Error())
 			return
 		}
 		if err := os.Remove(p); err != nil {
-			logger.Debug("ignoring error while removing auto-generated config file %q: %s", p, err.Error())
+			logrus.Debugf("ignoring error while removing auto-generated config file %q: %s", p, err.Error())
 		}
 		return
 	}
@@ -339,18 +340,18 @@ func MaybeDeleteConfig(meta *api.ClusterMeta) {
 	defaultFilename := configAccess.GetDefaultFilename()
 	fl, err := lockConfigFile(defaultFilename)
 	if err != nil {
-		logger.Critical(err.Error())
+		logrus.Errorf(err.Error())
 	}
 
 	defer func() {
 		if err := unlockConfigFile(fl); err != nil {
-			logger.Critical(err.Error())
+			logrus.Errorf(err.Error())
 		}
 	}()
 
 	config, err := configAccess.GetStartingConfig()
 	if err != nil {
-		logger.Debug("error reading kubeconfig file %q: %s", DefaultPath(), err.Error())
+		logrus.Debugf("error reading kubeconfig file %q: %s", DefaultPath(), err.Error())
 		return
 	}
 
@@ -359,7 +360,7 @@ func MaybeDeleteConfig(meta *api.ClusterMeta) {
 	}
 
 	if err := clientcmd.ModifyConfig(configAccess, *config, true); err != nil {
-		logger.Debug("ignoring error while failing to update config file %q: %s", DefaultPath(), err.Error())
+		logrus.Debugf("ignoring error while failing to update config file %q: %s", DefaultPath(), err.Error())
 	} else {
 		logger.Success("kubeconfig has been updated")
 	}
@@ -374,7 +375,7 @@ func deleteClusterInfo(existing *clientcmdapi.Config, meta *api.ClusterMeta) boo
 
 	if _, ok := existing.Clusters[clusterName]; ok {
 		delete(existing.Clusters, clusterName)
-		logger.Debug("removed cluster %q from kubeconfig", clusterName)
+		logrus.Debugf("removed cluster %q from kubeconfig", clusterName)
 		isChanged = true
 	}
 
@@ -382,11 +383,11 @@ func deleteClusterInfo(existing *clientcmdapi.Config, meta *api.ClusterMeta) boo
 	for name, context := range existing.Contexts {
 		if context.Cluster == clusterName {
 			delete(existing.Contexts, name)
-			logger.Debug("removed context for %q from kubeconfig", name)
+			logrus.Debugf("removed context for %q from kubeconfig", name)
 			isChanged = true
 			if _, ok := existing.AuthInfos[name]; ok {
 				delete(existing.AuthInfos, name)
-				logger.Debug("removed user for %q from kubeconfig", name)
+				logrus.Debugf("removed user for %q from kubeconfig", name)
 			}
 			currentContextName = name
 			break
@@ -395,7 +396,7 @@ func deleteClusterInfo(existing *clientcmdapi.Config, meta *api.ClusterMeta) boo
 
 	if existing.CurrentContext == currentContextName {
 		existing.CurrentContext = ""
-		logger.Debug("reset current-context in kubeconfig to %q", currentContextName)
+		logrus.Debugf("reset current-context in kubeconfig to %q", currentContextName)
 		isChanged = true
 	}
 
@@ -403,7 +404,7 @@ func deleteClusterInfo(existing *clientcmdapi.Config, meta *api.ClusterMeta) boo
 		if strings.HasSuffix(parts[1], "eksctl.io") {
 			if _, ok := existing.Contexts[existing.CurrentContext]; !ok {
 				existing.CurrentContext = ""
-				logger.Debug("reset stale current-context in kubeconfig", currentContextName)
+				logrus.Debugf("reset stale current-context in kubeconfig", currentContextName)
 				isChanged = true
 			}
 		}

@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/sirupsen/logrus"
 
-	"github.com/kris-nova/logger"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -22,7 +22,7 @@ type Summary struct {
 }
 
 func (a *Manager) Get(addon *api.Addon) (Summary, error) {
-	logger.Debug("addon: %v", addon)
+	logrus.Debugf("addon: %v", addon)
 	output, err := a.clusterProvider.Provider.EKS().DescribeAddon(&eks.DescribeAddonInput{
 		ClusterName: &a.clusterConfig.Metadata.Name,
 		AddonName:   &addon.Name,
@@ -64,7 +64,7 @@ func (a *Manager) Get(addon *api.Addon) (Summary, error) {
 }
 
 func (a *Manager) GetAll() ([]Summary, error) {
-	logger.Info("getting all addons")
+	logrus.Infof("getting all addons")
 	output, err := a.clusterProvider.Provider.EKS().ListAddons(&eks.ListAddonsInput{
 		ClusterName: &a.clusterConfig.Metadata.Name,
 	})
@@ -87,7 +87,7 @@ func (a *Manager) findNewerVersions(addon *api.Addon) (string, error) {
 	var newerVersions []string
 	currentVersion, err := semver.Parse(strings.TrimPrefix(addon.Version, "v"))
 	if err != nil {
-		logger.Debug("could not parse version %q, skipping finding newer versions: %v", addon.Version, err)
+		logrus.Debugf("could not parse version %q, skipping finding newer versions: %v", addon.Version, err)
 		return "-", nil
 	}
 	//trim off anything after x.y.z so its not used in comparison, e.g. 1.7.5-eksbuild.1 > 1.7.5
@@ -102,7 +102,7 @@ func (a *Manager) findNewerVersions(addon *api.Addon) (string, error) {
 	for _, versionInfo := range versions.Addons[0].AddonVersions {
 		version, err := semver.Parse(strings.TrimPrefix(*versionInfo.AddonVersion, "v"))
 		if err != nil {
-			logger.Debug("could not parse version %q, skipping version comparison: %v", addon.Version, err)
+			logrus.Debugf("could not parse version %q, skipping version comparison: %v", addon.Version, err)
 		} else {
 			//trim off anything after x.y.z and don't use in comparison, e.g. v1.7.5-eksbuild.1 > v1.7.5
 			version.Build = []string{}

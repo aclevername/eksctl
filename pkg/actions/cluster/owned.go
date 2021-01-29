@@ -5,6 +5,7 @@ import (
 
 	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils"
@@ -54,7 +55,7 @@ func (c *OwnedCluster) Upgrade(dryRun bool) error {
 	}
 
 	if err := c.ctl.ValidateExistingNodeGroupsForCompatibility(c.cfg, c.stackManager); err != nil {
-		logger.Critical("failed checking nodegroups", err.Error())
+		logrus.Errorf("failed checking nodegroups", err.Error())
 	}
 
 	cmdutils.LogPlanModeWarning(dryRun && (stackUpdateRequired || versionUpdateRequired))
@@ -69,7 +70,7 @@ func (c *OwnedCluster) Delete(_ time.Duration, wait bool) error {
 
 	clusterOperable, err := c.ctl.CanOperate(c.cfg)
 	if err != nil {
-		logger.Debug("failed to check if cluster is operable: %v", err)
+		logrus.Debugf("failed to check if cluster is operable: %v", err)
 	}
 
 	oidcSupported := true
@@ -95,7 +96,7 @@ func (c *OwnedCluster) Delete(_ time.Duration, wait bool) error {
 
 	deleteOIDCProvider := clusterOperable && oidcSupported
 	tasks, err := c.ctl.NewStackManager(c.cfg).NewTasksToDeleteClusterWithNodeGroups(deleteOIDCProvider, oidc, kubernetes.NewCachedClientSet(clientSet), wait, func(errs chan error, _ string) error {
-		logger.Info("trying to cleanup dangling network interfaces")
+		logrus.Infof("trying to cleanup dangling network interfaces")
 		if err := c.ctl.LoadClusterVPC(c.cfg); err != nil {
 			return errors.Wrapf(err, "getting VPC configuration for cluster %q", c.cfg.Metadata.Name)
 		}
@@ -112,11 +113,11 @@ func (c *OwnedCluster) Delete(_ time.Duration, wait bool) error {
 	}
 
 	if tasks.Len() == 0 {
-		logger.Warning("no cluster resources were found for %q", c.cfg.Metadata.Name)
+		logrus.Warningf("no cluster resources were found for %q", c.cfg.Metadata.Name)
 		return nil
 	}
 
-	logger.Info(tasks.Describe())
+	logrus.Infof(tasks.Describe())
 	if errs := tasks.DoAllSync(); len(errs) > 0 {
 		return handleErrors(errs, "cluster with nodegroup(s)")
 	}

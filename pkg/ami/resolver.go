@@ -3,7 +3,7 @@ package ami
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 )
 
 // MultiResolver is a Resolver that delegates to one or more Resolvers.
@@ -20,7 +20,7 @@ func (r *MultiResolver) Resolve(region, version, instanceType, imageFamily strin
 		ami, err := resolver.Resolve(region, version, instanceType, imageFamily)
 		if err != nil {
 			if _, ok := err.(*UnsupportedQueryError); ok {
-				logger.Debug(err.Error())
+				logrus.Debugf(err.Error())
 				continue
 			}
 			return "", err

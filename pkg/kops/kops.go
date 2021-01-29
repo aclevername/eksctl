@@ -2,8 +2,8 @@ package kops
 
 import (
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 	"github.com/weaveworks/eksctl/pkg/vpc"
 	"k8s.io/kops/pkg/resources/aws"
@@ -71,7 +71,7 @@ func (k *Wrapper) UseVPC(provider api.ClusterProvider, spec *api.ClusterConfig) 
 		}
 	}
 
-	logger.Debug("subnets = %#v", spec.VPC.Subnets)
+	logrus.Debugf("subnets = %#v", spec.VPC.Subnets)
 	if err := spec.HasSufficientSubnets(); err != nil {
 		return errors.Wrapf(err, "using VPC from kops cluster %q", k.clusterName)
 	}

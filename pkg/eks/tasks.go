@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/cfn/manager"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -152,7 +152,7 @@ func (t *restartDaemonsetTask) Do(errCh chan error) error {
 	if _, err := ds.Patch(context.TODO(), t.name, types.MergePatchType, bytes, metav1.PatchOptions{}); err != nil {
 		return errors.Wrap(err, "failed to patch deployment")
 	}
-	logger.Info(`daemonset "%s/%s" restarted`, t.namespace, t.name)
+	logrus.Infof(`daemonset "%s/%s" restarted`, t.namespace, t.name)
 	return nil
 }
 
@@ -182,8 +182,8 @@ func (c *ClusterProvider) CreateExtraClusterConfigTasks(cfg *api.ClusterConfig, 
 		})
 	}
 	if !cfg.HasClusterCloudWatchLogging() {
-		logger.Info("CloudWatch logging will not be enabled for cluster %q in %q", cfg.Metadata.Name, cfg.Metadata.Region)
-		logger.Info("you can enable it with 'eksctl utils update-cluster-logging --enable-types={SPECIFY-YOUR-LOG-TYPES-HERE (e.g. all)} --region=%s --cluster=%s'", cfg.Metadata.Region, cfg.Metadata.Name)
+		logrus.Infof("CloudWatch logging will not be enabled for cluster %q in %q", cfg.Metadata.Name, cfg.Metadata.Region)
+		logrus.Infof("you can enable it with 'eksctl utils update-cluster-logging --enable-types={SPECIFY-YOUR-LOG-TYPES-HERE (e.g. all)} --region=%s --cluster=%s'", cfg.Metadata.Region, cfg.Metadata.Name)
 
 	} else {
 		newTasks.Append(&clusterConfigTask{
@@ -319,9 +319,9 @@ func (c *ClusterProvider) maybeAppendTasksForEndpointAccessUpdates(cfg *api.Clus
 	// return an error from the EKS API, so we must check for this before sending the request.
 	if cfg.HasClusterEndpointAccess() && api.EndpointsEqual(*cfg.VPC.ClusterEndpoints, *api.ClusterEndpointAccessDefaults()) {
 		// No tasks to append here as there's no updates to make.
-		logger.Info(cfg.DefaultEndpointsMsg())
+		logrus.Infof(cfg.DefaultEndpointsMsg())
 	} else {
-		logger.Info(cfg.CustomEndpointsMsg())
+		logrus.Infof(cfg.CustomEndpointsMsg())
 
 		tasks.Append(&clusterConfigTask{
 			info: "update cluster VPC endpoint access configuration",

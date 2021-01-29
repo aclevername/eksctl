@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
 
@@ -24,7 +24,7 @@ type SSMResolver struct {
 // Resolve will return an AMI to use based on the default AMI for
 // each region
 func (r *SSMResolver) Resolve(region, version, instanceType, imageFamily string) (string, error) {
-	logger.Debug("resolving AMI using SSM Parameter resolver for region %s, instanceType %s and imageFamily %s", region, instanceType, imageFamily)
+	logrus.Debugf("resolving AMI using SSM Parameter resolver for region %s, instanceType %s and imageFamily %s", region, instanceType, imageFamily)
 
 	parameterName, err := MakeSSMParameterName(version, instanceType, imageFamily)
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	awseks "github.com/aws/aws-sdk-go/service/eks"
-	"github.com/kris-nova/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/eksctl/pkg/actions/addon"
 
 	"github.com/spf13/cobra"
@@ -62,7 +62,7 @@ func createAddonCmd(cmd *cmdutils.Cmd) {
 		}
 
 		if !oidcProviderExists {
-			logger.Warning("no IAM OIDC provider associated with cluster, try 'eksctl utils associate-iam-oidc-provider --region=%s --cluster=%s'", cmd.ClusterConfig.Metadata.Region, cmd.ClusterConfig.Metadata.Name)
+			logrus.Warningf("no IAM OIDC provider associated with cluster, try 'eksctl utils associate-iam-oidc-provider --region=%s --cluster=%s'", cmd.ClusterConfig.Metadata.Region, cmd.ClusterConfig.Metadata.Name)
 		}
 
 		stackManager := clusterProvider.NewStackManager(cmd.ClusterConfig)
@@ -75,7 +75,7 @@ func createAddonCmd(cmd *cmdutils.Cmd) {
 			return fmt.Errorf("failed to fetch cluster %q version: %v", cmd.ClusterConfig.Metadata.Name, err)
 		}
 
-		logger.Info("Kubernetes version %q in use by cluster %q", *output.Cluster.Version, cmd.ClusterConfig.Metadata.Name)
+		logrus.Infof("Kubernetes version %q in use by cluster %q", *output.Cluster.Version, cmd.ClusterConfig.Metadata.Name)
 		cmd.ClusterConfig.Metadata.Version = *output.Cluster.Version
 
 		clientSet, err := clusterProvider.NewStdClientSet(cmd.ClusterConfig)

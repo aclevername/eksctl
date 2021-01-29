@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kris-nova/logger"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
@@ -35,7 +35,7 @@ func ImportInstanceRoleFromProfileARN(provider api.ClusterProvider, ng *api.Node
 		return fmt.Errorf("instance profile %q has no roles", profileName)
 	}
 	if len(roles) > 1 {
-		logger.Debug("instance profile %q has %d roles, only first role will be used (%#v)", profileName, roles)
+		logrus.Debugf("instance profile %q has %d roles, only first role will be used (%#v)", profileName, roles)
 	}
 
 	ng.IAM.InstanceRoleARN = *output.InstanceProfile.Roles[0].Arn
