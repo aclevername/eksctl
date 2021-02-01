@@ -49,6 +49,7 @@ require (
 	github.com/weaveworks/goformation/v4 v4.10.2-0.20210115145130-4565586043b7
 	github.com/weaveworks/launcher v0.0.2-0.20200715141516-1ca323f1de15
 	github.com/whilp/git-urls v0.0.0-20191001220047-6db9661140c0
+	go.uber.org/zap v1.10.0
 	golang.org/x/tools v0.0.0-20210105210202-9ed45478a130
 	k8s.io/api v0.19.4
 	k8s.io/apiextensions-apiserver v0.19.4

@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
 	"github.com/weaveworks/eksctl/pkg/ctl/set"
 	"github.com/weaveworks/eksctl/pkg/ctl/unset"
 	"github.com/weaveworks/eksctl/pkg/ctl/upgrade"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"os"
+	"time"
 
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils"
 	"github.com/weaveworks/eksctl/pkg/ctl/completion"
@@ -39,6 +41,44 @@ func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	rootCmd.AddCommand(completion.Command(rootCmd))
 
 	cmdutils.AddResourceCmd(flagGrouping, rootCmd, versionCmd)
+}
+
+func SyslogTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format("10-04-19 12:00:17"))
+}
+
+func initZapLog() *zap.Logger {
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	config.EncoderConfig.TimeKey = "timestamp"
+	config.EncoderConfig.EncodeTime = SyslogTimeEncoder
+	config.DisableCaller = true
+	config.DisableStacktrace = true
+	
+	logger, _ := config.Build()
+	return logger
+}
+
+
+func init()  {
+	loggerMgr := initZapLog()
+	zap.ReplaceGlobals(loggerMgr)
+	defer loggerMgr.Sync() // flushes buffer, if any
+
+	zap.S().Infof(`eksctl version 0.36.2`)
+	zap.S().Infof(`using region us-west-2`)
+	zap.S().Infof(`1 existing iamserviceaccount(s) (baz/foo) will be excluded`)
+	zap.S().Infof(`1 iamserviceaccount (baz/fooo) was included (based on the include/exclude rules)`)
+	zap.S().Warnf("serviceaccounts that exists in Kubernetes will be excluded, use --override-existing-serviceaccounts to override")
+	zap.S().Infof(`1 task: { 2 sequential sub-tasks: { create IAM role for serviceaccount "baz/fooo", create serviceaccount "baz/fooo" } }`)
+	zap.S().Infof(`building iamserviceaccount stack "eksctl-jk-addon-iamserviceaccount-baz-fooo"`)
+	zap.S().Infof(`deploying stack "eksctl-jk-addon-iamserviceaccount-baz-fooo"`)
+	zap.S().Infof(`waiting for CloudFormation stack "eksctl-jk-addon-iamserviceaccount-baz-fooo"`)
+	zap.S().Infof(`waiting for CloudFormation stack "eksctl-jk-addon-iamserviceaccount-baz-fooo"`)
+	zap.S().Infof(`waiting for CloudFormation stack "eksctl-jk-addon-iamserviceaccount-baz-fooo"`)
+	zap.S().Infof(`created serviceaccount "baz/fooo"`)
+
+os.Exit(1)
 }
 
 func main() {
