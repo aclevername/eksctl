@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/eksctl/pkg/ctl/unset"
 	"github.com/weaveworks/eksctl/pkg/ctl/upgrade"
 
+	kitlog "github.com/go-kit/kit/log"
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils"
 	"github.com/weaveworks/eksctl/pkg/ctl/completion"
 	"github.com/weaveworks/eksctl/pkg/ctl/create"
@@ -22,6 +23,26 @@ import (
 	"github.com/weaveworks/eksctl/pkg/ctl/update"
 	"github.com/weaveworks/eksctl/pkg/ctl/utils"
 )
+
+func init() {
+	l := kitlog.NewLogfmtLogger(os.Stdout)
+
+
+	l.Log("info", "eksctl version 0.36.2")
+	l.Log("info", "using region us-west-2")
+	l.Log("info", "1 existing iamserviceaccount(s) (baz/foo) will be excluded")
+	l.Log("info", "1 iamserviceaccount (baz/fooo) was included (based on the include/exclude rules)")
+	l.Log("warning",   "serviceaccounts that exists in Kubernetes will be excluded, use --override-existing-serviceaccounts to override")
+	l.Log("info", "1 task: { 2 sequential sub-tasks: { create IAM role for serviceaccount baz/fooo, create serviceaccount baz/fooo } }")
+	l.Log("info", "building iamserviceaccount stack eksctl-jk-addon-iamserviceaccount-baz-fooo")
+	l.Log("info", "deploying stack eksctl-jk-addon-iamserviceaccount-baz-fooo")
+	l.Log("info", "waiting for CloudFormation stack eksctl-jk-addon-iamserviceaccount-baz-fooo")
+	l.Log("info", "waiting for CloudFormation stack eksctl-jk-addon-iamserviceaccount-baz-fooo")
+	l.Log("info", "waiting for CloudFormation stack eksctl-jk-addon-iamserviceaccount-baz-fooo")
+	l.Log("info", "created serviceaccount baz/fooo")
+
+	os.Exit(1)
+}
 
 func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	rootCmd.AddCommand(create.Command(flagGrouping))

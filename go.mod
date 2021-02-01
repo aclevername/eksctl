@@ -17,6 +17,7 @@ require (
 	github.com/fluxcd/go-git-providers v0.0.3
 	github.com/fluxcd/helm-operator/pkg/install v0.0.0-20200729150005-1467489f7ee4 // helm-operator 1.2.0
 	github.com/github-release/github-release v0.9.0
+	github.com/go-kit/kit v0.10.0
 	github.com/gobwas/glob v0.2.3
 	github.com/gofrs/flock v0.8.0
 	github.com/golangci/golangci-lint v1.35.2
